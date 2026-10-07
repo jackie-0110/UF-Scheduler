@@ -3,9 +3,8 @@
  * Keep in sync with the terms scraped in the backend's scraper workflow.
  */
 export const TERMS = [
+  { value: "spring 27", label: "Spring 27" },
   { value: "fall 26", label: "Fall 26" },
-  // Scraped without a UF login, so sections have no meeting times yet
-  { value: "spring 27", label: "Spring 27 (no times yet)" },
 ] as const;
 
 export const DEFAULT_TERM: string = TERMS[0].value;
