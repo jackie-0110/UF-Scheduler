@@ -1,30 +1,14 @@
 import { Course, Section } from "../CourseUI/CourseTypes";
 import "./CalendarStyle.css";
-import { ViewState } from "@devexpress/dx-react-scheduler";
-import { Paper } from "@mui/material";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { PaletteMode } from "@mui/material";
-import { grey, indigo } from "@mui/material/colors";
 import { useEffect, useState, useMemo, useRef } from "react";
-import InfiniteScroll from "react-infinite-scroller";
-import Select, { CSSObjectWithLabel } from "react-select";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
-import {
-  Scheduler,
-  Appointments,
-  WeekView,
-  AppointmentTooltip,
-  Resources,
-} from "@devexpress/dx-react-scheduler-material-ui";
+import WeekGrid from "./WeekGrid";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
-
-const currentDate = isWeekend
-  ? new Date(addDays(today, 7 - today.getDay())).toISOString().split("T")[0]
-  : today.toISOString().split("T")[0];
 
 const getDayDate = (dayIndex: number) => {
   const start = isWeekend
@@ -52,32 +36,6 @@ function areAppointmentsEqual(appointments1?: any[], appointments2?: any[]) {
   }
   return true;
 }
-
-const getDesignTokens = (mode: PaletteMode) => ({
-  palette: {
-    mode,
-    primary: {
-      ...indigo,
-      ...(mode === "dark" && {
-        main: indigo[400],
-      }),
-    },
-    ...(mode === "dark" && {
-      background: {
-        default: grey[900],
-        paper: grey[900],
-      },
-    }),
-    text: {
-      ...{
-        primary: "#fff",
-        secondary: grey[500],
-      },
-    },
-  },
-});
-
-const darkModeTheme = createTheme(getDesignTokens("dark"));
 
 const generateICSContent = (appointments: any[]) => {
   let icsContent =
@@ -152,6 +110,66 @@ const generateICSContent = (appointments: any[]) => {
   return icsContent;
 };
 
+type ScheduleOption = { appointments: any[]; combination: Section[] };
+
+type ScheduleFilters = {
+  startAfter: number | null; // minutes from midnight
+  endBy: number | null;
+  maxGap: number | null; // minutes between back-to-back classes
+  daysOff: string[];
+};
+
+const NO_FILTERS: ScheduleFilters = {
+  startAfter: null,
+  endBy: null,
+  maxGap: null,
+  daysOff: [],
+};
+
+const DAY_CODES = ["M", "T", "W", "R", "F"];
+const BATCH_SIZE = 20;
+
+const timeToMinutes = (timeStr: string): number => {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+// Filters describe classes, so recurring events the student added are ignored
+const passesFilters = (combination: Section[], filters: ScheduleFilters) => {
+  const byDay: { [day: string]: [number, number][] } = {};
+  for (const section of combination) {
+    if (!section.courseCode) continue;
+    for (const meetTime of section.meetTimes) {
+      const begin = timeToMinutes(meetTime.meetTimeBegin);
+      const end = timeToMinutes(meetTime.meetTimeEnd);
+      if (filters.startAfter !== null && begin < filters.startAfter) return false;
+      if (filters.endBy !== null && end > filters.endBy) return false;
+      for (const day of meetTime.meetDays) {
+        if (filters.daysOff.includes(day)) return false;
+        (byDay[day] = byDay[day] || []).push([begin, end]);
+      }
+    }
+  }
+  if (filters.maxGap !== null) {
+    for (const meetings of Object.values(byDay)) {
+      meetings.sort((a, b) => a[0] - b[0]);
+      for (let i = 1; i < meetings.length; i++) {
+        if (meetings[i][0] - meetings[i - 1][1] > filters.maxGap) return false;
+      }
+    }
+  }
+  return true;
+};
+
+const isTypingTarget = (target: EventTarget | null) => {
+  const element = target as HTMLElement | null;
+  return (
+    !!element &&
+    (["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName) ||
+      element.isContentEditable)
+  );
+};
+
 export type SelectedCalendarType = {
   appointments: any[];
   combination: Section[];
@@ -172,25 +190,20 @@ const Calendar: React.FC<CalendarProps> = ({
   term,
   year,
 }) => {
-  const [currentCalendars, setCurrentCalendars] = useState<
-    { appointments: any[]; combination: Section[] }[]
-  >([]);
-  const [hasMoreItems, setHasMoreItems] = useState(true);
+  const [currentCalendars, setCurrentCalendars] = useState<ScheduleOption[]>(
+    []
+  );
+  const [hasMoreItems, setHasMoreItems] = useState(false);
   const [isAppointmentFormVisible, setIsAppointmentFormVisible] =
     useState(false);
-  const [instancesThis, setInstances] = useState<any[]>([]);
   const [lastIndex, setLastIndex] = useState(0);
-  const [selectedSortOption, setSelectedSortOption] = useState<{
-    value: string;
-    label: string;
-  } | null>(null);
+  const [sortValue, setSortValue] = useState("");
   const [isLoadingSort, setIsLoadingSort] = useState(false);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [filters, setFilters] = useState<ScheduleFilters>(NO_FILTERS);
+  // Which schedule the pager is showing (index into `options` below)
+  const [position, setPosition] = useState(0);
   const prevSelectedCoursesRef = useRef<Course[]>();
   const prevCustomAppointmentsRef = useRef<any[]>();
-  const [animationKey, setAnimationKey] = useState<string>(
-    Date.now().toString()
-  );
 
   const getCurrentWeekDayDate = (dayIndex: number) => {
     const today = new Date();
@@ -241,20 +254,6 @@ const Calendar: React.FC<CalendarProps> = ({
   });
   
 
-  let resources: any[] = [
-    {
-      fieldName: "classNumber",
-      title: "classNumber",
-      allowMultiple: false,
-      instances: [...instancesThis],
-    },
-    {
-      fieldName: "location",
-      title: "Location",
-      allowMultiple: false,
-      instances: [...locations],
-    },
-  ];
 
   const sortOptions = [
     { value: "earliestStart", label: "Earliest Start" },
@@ -299,13 +298,6 @@ const Calendar: React.FC<CalendarProps> = ({
     } else {
       setSelectedCalendar(null);
     }
-    
-    // Reset state for new calendars
-    setCurrentCalendars([]);
-    setLastIndex(0);
-    setHasMoreItems(true);
-    setSelectedSortOption(null);
-    setAnimationKey(Date.now().toString());
   }, [term, year]);
 
   // Step 1: Identify selected sections
@@ -342,32 +334,6 @@ const Calendar: React.FC<CalendarProps> = ({
   // Step 2: Generate all possible combinations
   const generateAllCombinations = (arrays: Section[][]) => {
     arrays = [...arrays, ...customAppointments.map((item) => [item])];
-    for (let sections of arrays) {
-      for (let section of sections) {
-        if (section.classNumber !== "") {
-          instancesThis.push({
-            id: `${section.classNumber}`,
-            text: `Class # ${section.classNumber}`,
-            color: `${section.color}`,
-          });
-        } else {
-          instancesThis.push({
-            id: `${section.courseName}-${section.color}`,
-            text: `${section.courseName}`,
-            color: `${section.color}`,
-          });
-        }
-        for (let meetTime of section.meetTimes) {
-          if (meetTime.meetBuilding !== "") {
-            locations.push({
-              id: `${meetTime.meetBuilding} ${meetTime.meetRoom}`,
-              text: `${meetTime.meetBuilding} ${meetTime.meetRoom}`,
-              color: `${section.color}`,
-            });
-          }
-        }
-      }
-    }
     return arrays.reduce<Section[][]>(
       (acc, curr) =>
         acc.flatMap((c: Section[]) =>
@@ -389,12 +355,11 @@ const Calendar: React.FC<CalendarProps> = ({
   useEffect(() => {
     const newCombinations = generateAllCombinations(allSelectedSections);
     setAllCombinations(newCombinations);
-    setAnimationKey(Date.now().toString());
   }, [allSelectedSections, customAppointments]);
 
   // Step 3: Create calendars
   const createCalendars = (startIndex: number, numRequested: number) => {
-    let generatedCalendars = [];
+    let generatedCalendars: ScheduleOption[] = [];
     let index = startIndex;
 
     while (
@@ -402,17 +367,17 @@ const Calendar: React.FC<CalendarProps> = ({
       index < allCombinations.length
     ) {
       const combination = allCombinations[index];
+      index++;
+      if (!passesFilters(combination, filters)) continue;
+
       let appointments = [];
       let isValidCombination = true;
       const intervalTree = new IntervalTree();
 
       combinationLoop: for (let section of combination) {
-        let title = "";
-        if (section.courseCode) {
-          title = `${section.courseCode}`;
-        } else {
-          title = `${section.courseName}`;
-        }
+        const title = section.courseCode
+          ? `${section.courseCode}`
+          : `${section.courseName}`;
         const { color, meetTimes } = section;
 
         for (let {
@@ -422,30 +387,20 @@ const Calendar: React.FC<CalendarProps> = ({
           meetBuilding,
           meetRoom,
         } of meetTimes) {
-          const startDateBase = meetTimeBegin;
-          const endDateBase = meetTimeEnd;
-          const building = meetBuilding;
-          const room = meetRoom;
-
           for (let day of meetDays) {
             const date = dayMapping.get(day);
-            const startDate = `${date}T${startDateBase}`;
-            const endDate = `${date}T${endDateBase}`;
+            const startDate = `${date}T${meetTimeBegin}`;
+            const endDate = `${date}T${meetTimeEnd}`;
             const id = `${section.courseName}-${startDate}-${date}`;
-            let classNumber = null;
-            if (section.classNumber !== "") {
-              classNumber = `${section.classNumber}`;
-            } else {
-              classNumber = `${section.courseName}-${section.color}`;
-            }
-            // const number = id;
-            const startMoment = new Date(startDate);
-            const endMoment = new Date(endDate);
+            const classNumber =
+              section.classNumber !== ""
+                ? `${section.classNumber}`
+                : `${section.courseName}-${section.color}`;
 
             // Creating an interval using the Interval class
             const interval = new Interval(
-              startMoment.valueOf(),
-              endMoment.valueOf()
+              new Date(startDate).valueOf(),
+              new Date(endDate).valueOf()
             );
 
             // Checking for overlapping appointments using the interval tree
@@ -453,13 +408,6 @@ const Calendar: React.FC<CalendarProps> = ({
               isValidCombination = false;
               break combinationLoop;
             }
-
-            const finalExam = section.finalExam;
-
-            const location = `${building} ${room}`;
-
-            const firstDay = section.startDate;
-            const lastDay = section.endDate;
 
             // Adding the current appointment to the interval tree
             intervalTree.insert(interval);
@@ -470,10 +418,10 @@ const Calendar: React.FC<CalendarProps> = ({
               classNumber,
               title,
               color,
-              finalExam,
-              location,
-              firstDay,
-              lastDay,
+              finalExam: section.finalExam,
+              location: `${meetBuilding} ${meetRoom}`,
+              firstDay: section.startDate,
+              lastDay: section.endDate,
             });
           }
         }
@@ -481,203 +429,94 @@ const Calendar: React.FC<CalendarProps> = ({
       if (isValidCombination) {
         generatedCalendars.push({ appointments, combination });
       }
-      index++;
     }
-    setLastIndex(index); // Update the lastIndex state
-    return generatedCalendars;
+    return { calendars: generatedCalendars, nextIndex: index };
   };
+
+  // Rebuild the option list whenever the courses, sort order or filters change
+  useEffect(() => {
+    const { calendars, nextIndex } = createCalendars(0, BATCH_SIZE);
+    setCurrentCalendars(calendars);
+    setLastIndex(nextIndex);
+    setHasMoreItems(nextIndex < allCombinations.length);
+    setPosition(0);
+  }, [allCombinations, filters]);
 
   const loadMoreCalendars = () => {
-    const newCalendars = createCalendars(lastIndex, 5); // Assuming you want to generate 5 calendars at a time
+    const { calendars, nextIndex } = createCalendars(lastIndex, BATCH_SIZE);
+    setCurrentCalendars((prev) => [...prev, ...calendars]);
+    setLastIndex(nextIndex);
+    setHasMoreItems(nextIndex < allCombinations.length);
+  };
 
-    if (newCalendars.length === 0) {
-      setHasMoreItems(false); // No more valid combinations, stop loading
-      return;
+  // Step 4: The pager's list — the pinned schedule first, then every other option
+  const otherOptions = selectedCalendar
+    ? currentCalendars.filter(
+        (calendar) =>
+          !areAppointmentsEqual(
+            selectedCalendar.appointments,
+            calendar.appointments
+          )
+      )
+    : currentCalendars;
+  const options: (ScheduleOption & { pinned?: boolean })[] = selectedCalendar
+    ? [{ ...selectedCalendar, pinned: true }, ...otherOptions]
+    : otherOptions;
+  const current = options[Math.min(position, options.length - 1)];
+  const currentPosition = Math.max(0, Math.min(position, options.length - 1));
+
+  const goTo = (next: number) =>
+    setPosition(Math.max(0, Math.min(next, options.length - 1)));
+
+  // Keep a few options loaded ahead of the pager
+  useEffect(() => {
+    if (hasMoreItems && currentPosition >= options.length - 3) {
+      loadMoreCalendars();
     }
-    setCurrentCalendars([...currentCalendars, ...newCalendars]);
-  };
+  }, [currentPosition, options.length, hasMoreItems]);
 
-  const debounce = (func: (...args: any[]) => void, delay: number) => {
-    let debounceTimer: NodeJS.Timeout;
-    return (...args: any[]) => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => func(...args), delay);
+  // Left / right arrow keys page through the options
+  const pagerRef = useRef({ currentPosition, count: options.length });
+  pagerRef.current = { currentPosition, count: options.length };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (isTypingTarget(event.target)) return;
+      const { currentPosition, count } = pagerRef.current;
+      const next = currentPosition + (event.key === "ArrowRight" ? 1 : -1);
+      if (next < 0 || next >= count) return;
+      event.preventDefault();
+      setPosition(next);
     };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const downloadICS = (appointments: any[]) => {
+    const blob = new Blob([generateICSContent(appointments)], {
+      type: "text/calendar",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "calendar.ics";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const loadMoreCalendarsDebounced = debounce(loadMoreCalendars, 50);
-
-  // Step 4: Render calendars
-  const renderCalendar = (
-    {
-      appointments,
-      combination,
-    }: { appointments: any[]; combination: Section[] },
-    index: number
-  ) => {
-    const startDayHour = appointments.length
-      ? Math.min(
-          Math.min(
-            ...appointments.map((a: any) => new Date(a.startDate).getHours())
-          ) - 1,
-          23.5
-        )
-      : 7;
-
-    const endDayHour = appointments.length
-      ? Math.min(
-          Math.max(
-            ...appointments.map((a: any) => new Date(a.endDate).getHours())
-          ) + 1,
-          23.5
-        )
-      : 19.5;
-
-    let mainResourceName = "classNumber";
-
-    const onlineSections = combination.filter(
-      (section) => !section.meetTimes || section.meetTimes.length === 0
-    );
-
-    const onlineSectionNames = onlineSections.map(
-      (section) => section.courseName
-    );
-    let onlineMessage = "";
+  const getOnlineMessage = (combination: Section[]) => {
+    const onlineSectionNames = combination
+      .filter((section) => !section.meetTimes || section.meetTimes.length === 0)
+      .map((section) => section.courseName);
     if (onlineSectionNames.length > 1) {
-      onlineMessage = `${onlineSectionNames
+      return `${onlineSectionNames
         .slice(0, -1)
         .join(", ")} and ${onlineSectionNames.slice(-1)} are online`;
-    } else if (onlineSectionNames.length === 1) {
-      onlineMessage = `${onlineSectionNames[0]} is online`;
     }
-
-    return (
-      <>
-        <div className="header-and-calendar">
-          {onlineMessage && (
-            <div
-              className="online-section-message"
-              style={{
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                padding: "5px",
-                color: "#fff",
-              }}
-            >
-              {onlineMessage}
-            </div>
-          )}
-          <div>
-            <ThemeProvider theme={darkModeTheme}>
-              <Paper>
-                <div className="Scheduler">
-                  <Scheduler data={appointments}>
-                    <ViewState currentDate={currentDate} />
-                    <WeekView
-                      startDayHour={startDayHour}
-                      endDayHour={endDayHour}
-                      intervalCount={1}
-                      cellDuration={50}
-                      excludedDays={[0, 6]}
-                    />
-                    <Appointments />
-                    <AppointmentTooltip showCloseButton />
-                    <Resources
-                      data={resources}
-                      mainResourceName={mainResourceName}
-                    />
-                  </Scheduler>
-                </div>
-              </Paper>
-            </ThemeProvider>
-          </div>
-        </div>
-
-        {appointments.length > 0 && (
-          <>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "end",
-                marginBottom: "25px",
-                marginRight: "30px",
-              }}
-            >
-              {!areAppointmentsEqual(
-                selectedCalendar?.appointments,
-                appointments
-              ) ? (
-                <button
-                  onClick={() => {
-                    setSelectedCalendar({ appointments, combination });
-                  }}
-                  style={{
-                    padding: "5px",
-                    fontSize: "16px",
-                    borderRadius: "4px",
-                    border: "none",
-                    backgroundColor: "#008000",
-                    color: "#fff",
-                    cursor: "pointer",
-                    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                    marginTop: "7px",
-                    height: "auto",
-                    width: "auto",
-                    marginLeft: "30px",
-                  }}
-                >
-                  Select
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    setSelectedCalendar(null);
-                  }}
-                  style={{
-                    padding: "5px",
-                    fontSize: "16px",
-                    borderRadius: "4px",
-                    border: "none",
-                    backgroundColor: "#D22B2B",
-                    color: "#fff",
-                    cursor: "pointer",
-                    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                    marginTop: "7px",
-                    height: "auto",
-                    width: "auto",
-                    marginLeft: "30px",
-                  }}
-                >
-                  Deselect
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  const icsContent = generateICSContent(appointments);
-                  const blob = new Blob([icsContent], {
-                    type: "text/calendar",
-                  });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "calendar.ics";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="text-white"
-              >
-                Download ICS
-              </button>
-            </div>
-          </>
-        )}
-      </>
-    );
-  };
-
-  const timeToMinutes = (timeStr: string): number => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    return hours * 60 + minutes;
+    return onlineSectionNames.length === 1
+      ? `${onlineSectionNames[0]} is online`
+      : "";
   };
 
   const getTimes = (combination: any, key: string) => {
@@ -697,7 +536,7 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const sortCombinations = (selectedOption: any) => {
-    return allCombinations.sort((a, b) => {
+    return [...allCombinations].sort((a, b) => {
       if (selectedOption.value === "mostCompact") {
         const [aStart, aEnd] = getEarliestAndLatestTimes(a);
         const [bStart, bEnd] = getEarliestAndLatestTimes(b);
@@ -712,7 +551,9 @@ const Calendar: React.FC<CalendarProps> = ({
     });
   };
 
-  const handleSortChange = (selectedOption: any) => {
+  const handleSortChange = (value: string) => {
+    setSortValue(value);
+    if (!value) return;
     setIsLoadingSort(true); // Set loading state to true at the start
 
     setTimeout(() => {
@@ -731,41 +572,46 @@ const Calendar: React.FC<CalendarProps> = ({
         latestEnd: { key: "meetTimeEnd", operation: Math.max, direction: -1 },
       };
 
-      const sortedCombinations = sortCombinations({
-        ...sortOptions[selectedOption.value],
-        value: selectedOption.value,
-      });
-      setAllCombinations(sortedCombinations);
-      setCurrentCalendars([]);
-      setLastIndex(0);
-      setHasMoreItems(true);
+      setAllCombinations(
+        sortCombinations({ ...sortOptions[value], value })
+      );
       setIsLoadingSort(false); // Set loading state to false at the end
     }, 0);
   };
 
   useEffect(() => {
-    // Step 2: Compare the current values with the previous values
+    // A new course list starts from the default order again
     if (
       JSON.stringify(prevSelectedCoursesRef.current) !==
         JSON.stringify(selectedCourses) ||
       JSON.stringify(prevCustomAppointmentsRef.current) !==
         JSON.stringify(customAppointments)
     ) {
-      setCurrentCalendars([]);
-      setLastIndex(0);
-      setHasMoreItems(true);
-      setSelectedSortOption(null);
+      setSortValue("");
     }
-
-    // Step 4: Update the reference values
     prevSelectedCoursesRef.current = selectedCourses;
     prevCustomAppointmentsRef.current = customAppointments;
   }, [selectedCourses, customAppointments]);
 
-  useEffect(() => {
-    // Load initial calendars when the component mounts
-    loadMoreCalendarsDebounced();
-  }, []); // Empty dependency array means this useEffect runs once when component mounts
+  const filtersActive =
+    filters.startAfter !== null ||
+    filters.endBy !== null ||
+    filters.maxGap !== null ||
+    filters.daysOff.length > 0;
+  const hasCourses = selectedCourses.length > 0 || customAppointments.length > 0;
+  const hourOptions = (hours: number[]) =>
+    hours.map((hour) => (
+      <option key={hour} value={hour * 60}>
+        {hour % 12 === 0 ? 12 : hour % 12} {hour >= 12 ? "PM" : "AM"}
+      </option>
+    ));
+  const numberOrNull = (value: string) => (value === "" ? null : Number(value));
+
+  const optionNumber = current
+    ? currentPosition - (selectedCalendar ? 1 : 0) + 1
+    : 0;
+  const optionTotal = `${otherOptions.length}${hasMoreItems ? "+" : ""}`;
+  const onlineMessage = current ? getOnlineMessage(current.combination) : "";
 
   return (
     <div className="calendar-container-2">
@@ -786,117 +632,199 @@ const Calendar: React.FC<CalendarProps> = ({
               width: "auto",
               height: "auto",
               zIndex: 999,
-              backgroundColor: "#252422",
               marginLeft: "0%", // Adjust to center horizontally
               marginTop: "-15%", // Adjust to center vertically
-              border: "2px solid #F5F5F5",
-              borderRadius: "4px",
             }}
           ></CustomAppointmentForm>
         )}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0 20px",
-            height: "60px",
-            marginBottom: "20px",
-          }}
-        >
-          <Select
-            value={selectedSortOption}
-            options={sortOptions}
-            onChange={(option) => {
-              setSelectedSortOption(option || null);
-              handleSortChange(option);
-            }}
-            theme={(theme) => ({
-              ...theme,
-              borderRadius: 6,
-              colors: {
-                ...theme.colors,
-                primary25: "#E6E6E6",
-                primary: "#B3B3B3",
-              },
+        <div className="schedule-toolbar">
+          <label className="schedule-filter">
+            Start after
+            <select
+              value={filters.startAfter ?? ""}
+              onChange={(e) =>
+                setFilters({ ...filters, startAfter: numberOrNull(e.target.value) })
+              }
+            >
+              <option value="">Any</option>
+              {hourOptions([8, 9, 10, 11, 12, 13])}
+            </select>
+          </label>
+          <label className="schedule-filter">
+            End by
+            <select
+              value={filters.endBy ?? ""}
+              onChange={(e) =>
+                setFilters({ ...filters, endBy: numberOrNull(e.target.value) })
+              }
+            >
+              <option value="">Any</option>
+              {hourOptions([13, 14, 15, 16, 17, 18])}
+            </select>
+          </label>
+          <label className="schedule-filter">
+            Max gap
+            <select
+              value={filters.maxGap ?? ""}
+              onChange={(e) =>
+                setFilters({ ...filters, maxGap: numberOrNull(e.target.value) })
+              }
+            >
+              <option value="">Any</option>
+              <option value={60}>1 hr</option>
+              <option value={120}>2 hr</option>
+              <option value={180}>3 hr</option>
+            </select>
+          </label>
+          <div className="schedule-filter" role="group" aria-label="Days off">
+            Days off
+            {DAY_CODES.map((day) => {
+              const isOff = filters.daysOff.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className={`day-toggle${isOff ? " on" : ""}`}
+                  aria-pressed={isOff}
+                  onClick={() =>
+                    setFilters({
+                      ...filters,
+                      daysOff: isOff
+                        ? filters.daysOff.filter((d) => d !== day)
+                        : [...filters.daysOff, day],
+                    })
+                  }
+                >
+                  {day}
+                </button>
+              );
             })}
-            placeholder="Sort by..."
-            className="sort-dropdown w-[80%] mt-2 font-sans font-semibold"
-            menuPortalTarget={document.body} // Append the dropdown to the body element
-            styles={{
-              menuPortal: (base) =>
-                ({ ...base, zIndex: 999 } as CSSObjectWithLabel), // Adjust the z-index to a value lower than the drawer's but higher than other elements
-              control: (base) =>
-                ({
-                  ...base,
-                  borderRadius: "4px", // Adjust this value to control the border radius of the control
-                  boxShadow: "none", // Remove the box shadow to eliminate the thick border
-                  border: "1px solid #ccc", // Optional: Customize the border style
-                } as CSSObjectWithLabel),
-            }}
-          />
-          <button
-            style={{
-              padding: "5px", // Add padding to make the button larger
-              fontSize: "16px", // Set a font size
-              borderRadius: "4px", // Round the corners of the button
-              border: "none", // Remove the default border
-              backgroundColor: "#1c63d6", // Use a background color that matches your theme
-              color: "#fff", // Set the text color to white
-              cursor: "pointer", // Change the cursor to a pointer on hover
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Add a subtle box shadow
-              marginTop: "7px", // Add some top margin
-              height: "auto", // Set the height
-              width: "auto", // Set the width
-              marginLeft: "10px",
-            }}
-            onClick={() => setIsAppointmentFormVisible((prev) => !prev)}
-          >
-            Add Events
-          </button>
+          </div>
+          {filtersActive && (
+            <button
+              type="button"
+              className="schedule-card-link"
+              onClick={() => setFilters(NO_FILTERS)}
+            >
+              Clear filters
+            </button>
+          )}
+          <div className="schedule-toolbar-end">
+            <label className="schedule-filter">
+              Sort
+              <select
+                value={sortValue}
+                onChange={(e) => handleSortChange(e.target.value)}
+              >
+                <option value="">Default</option>
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="schedule-add-event"
+              onClick={() => setIsAppointmentFormVisible((prev) => !prev)}
+            >
+              Add event
+            </button>
+          </div>
         </div>
-        <div style={{ height: "calc(100vh - 123px)", overflowY: "scroll" }}>
-          {" "}
-          {/* Add this container with defined height and overflow */}
-          <InfiniteScroll
-            pageStart={0}
-            loadMore={loadMoreCalendarsDebounced}
-            hasMore={hasMoreItems}
-            useWindow={false}
-            key={0}
-          >
-            {/* Step 3: If selectedCalendar is not empty, display it first */}
-            {selectedCalendar && (
-              <>
-                <div className="bg-gray-800 pt-4 pb-[1px] rounded-md mx-[20px]">
-                  <p className="text-white text-lg font-bold ml-[30px] mb-[10px]">
-                    Selected Calendar
-                  </p>
-                  <div>{renderCalendar(selectedCalendar, -1)}</div>
-                </div>
-              </>
-            )}
-            <div className="flex flex-col mt-2">
-              {currentCalendars.map(({ appointments, combination }, index) => {
-                const currentBatchIndex = index % 5;
 
-                return (
-                  <div
-                    key={`${animationKey}-${index}`}
-                    className="fade-in-wave"
-                    style={{ animationDelay: `${currentBatchIndex * 100}ms` }}
+        <div
+          className={`header-and-calendar${
+            current?.pinned ? " selected-schedule" : ""
+          }`}
+        >
+          <div className="schedule-card-header">
+            {current ? (
+              <div className="schedule-pager">
+                <button
+                  type="button"
+                  aria-label="Previous schedule"
+                  title="Previous (←)"
+                  disabled={currentPosition === 0}
+                  onClick={() => goTo(currentPosition - 1)}
+                >
+                  <IoChevronBack size={16} />
+                </button>
+                <span className="schedule-card-title" aria-live="polite">
+                  {current.pinned
+                    ? "Your schedule"
+                    : `Option ${optionNumber} of ${optionTotal}`}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next schedule"
+                  title="Next (→)"
+                  disabled={currentPosition >= options.length - 1}
+                  onClick={() => goTo(currentPosition + 1)}
+                >
+                  <IoChevronForward size={16} />
+                </button>
+              </div>
+            ) : (
+              <span className="schedule-card-title">Your week</span>
+            )}
+            {onlineMessage && (
+              <span className="online-section-message">{onlineMessage}</span>
+            )}
+            {current && current.appointments.length > 0 && (
+              <div className="schedule-card-actions">
+                <button
+                  className="schedule-card-link"
+                  onClick={() => downloadICS(current.appointments)}
+                >
+                  Download ICS
+                </button>
+                <button
+                  className={`schedule-card-select${
+                    current.pinned ? " selected" : ""
+                  }`}
+                  onClick={() => {
+                    if (current.pinned) {
+                      setSelectedCalendar(null);
+                    } else {
+                      setSelectedCalendar({
+                        appointments: current.appointments,
+                        combination: current.combination,
+                      });
+                    }
+                    setPosition(0);
+                  }}
+                >
+                  {current.pinned ? "Deselect" : "Select"}
+                </button>
+              </div>
+            )}
+          </div>
+          {!current && hasCourses ? (
+            <div className="schedule-empty">
+              <strong>No schedule fits.</strong>
+              {filtersActive ? (
+                <>
+                  <span>Your filters rule out every combination of sections.</span>
+                  <button
+                    type="button"
+                    className="schedule-card-select"
+                    onClick={() => setFilters(NO_FILTERS)}
                   >
-                    {renderCalendar({ appointments, combination }, index)}
-                  </div>
-                );
-              })}
-              {currentCalendars.length === 0 && (
-                <div className="text-white text-lg text-center align-middle leading-[50vh] fade-text-in">
-                  No possible calendars.
-                </div>
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                <span>
+                  These courses have no combination of sections without a time
+                  conflict.
+                </span>
               )}
             </div>
-          </InfiniteScroll>
+          ) : (
+            <WeekGrid appointments={current ? current.appointments : []} />
+          )}
         </div>
       </div>
     </div>

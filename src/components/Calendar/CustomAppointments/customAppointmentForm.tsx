@@ -33,7 +33,7 @@ const CustomAppointmentForm: React.FC<CustomAppointmentProps> = ({
   const credits = 0;
   const deptName = "";
   const finalExam = "";
-  const [color, setColor] = useState("#1f4da8");
+  const [color, setColor] = useState("#0f44cd");
   const [isFormValid, setIsFormValid] = useState(false);
   const meetBldgCode = "";
 
@@ -212,7 +212,7 @@ const CustomAppointmentForm: React.FC<CustomAppointmentProps> = ({
           top: "10px",
           fontSize: "25px",
           cursor: "pointer",
-          color: "#FFFFFF",
+          color: "var(--csu-muted)",
         }}
         onClick={() => setIsAppointmentFormVisible((prev) => !prev)}
         className="close-button"
