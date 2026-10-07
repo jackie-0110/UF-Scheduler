@@ -17,6 +17,7 @@ import Graph from "../../components/Cytoscape/Graph";
 import { ChangeEvent } from "react";
 import { useAIActionStore } from "../../store/aiActionStore";
 import { API_URLS, BACKEND_URLS } from "../../config/api";
+import { DEFAULT_TERM, isKnownTerm } from "../../config/terms";
 
 const Main = () => {
   const [selectedMajor, setSelectedMajor] = useState<string | null>(() => {
@@ -28,15 +29,19 @@ const Main = () => {
     }
   });
 
-  const [term, setTerm] = useState<string>(() => {
-    return localStorage.getItem("selectedTerm") ?? "summer";
-  });
-  const [year, setYear] = useState<string>(() => {
-    return localStorage.getItem("selectedYear") ?? "26";
-  });
-  const [selectedValue, setSelectedValue] = useState<string>(() => {
-    return localStorage.getItem("selectedTermValue") ?? "summer 26";
-  });
+  // A saved term the API no longer serves (a past semester) falls back to the newest one
+  const initialTermValue = (() => {
+    const stored = localStorage.getItem("selectedTermValue");
+    const value = isKnownTerm(stored) ? stored : DEFAULT_TERM;
+    // other components read these keys directly
+    localStorage.setItem("selectedTermValue", value);
+    localStorage.setItem("selectedTerm", value.split(" ")[0]);
+    localStorage.setItem("selectedYear", value.split(" ")[1]);
+    return value;
+  })();
+  const [term, setTerm] = useState<string>(initialTermValue.split(" ")[0]);
+  const [year, setYear] = useState<string>(initialTermValue.split(" ")[1]);
+  const [selectedValue, setSelectedValue] = useState<string>(initialTermValue);
   const [calendarResetKey, setCalendarResetKey] = useState<string>(
     `${term}_${year}`
   );

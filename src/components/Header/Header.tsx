@@ -7,6 +7,7 @@ import { IoMapOutline } from "react-icons/io5";
 import { Course } from "../CourseUI/CourseTypes";
 import { useAuth } from "react-oidc-context";
 import { signOutRedirect } from "../../config/api";
+import { TERMS } from "../../config/terms";
 
 type View = "calendar" | "graph" | "map" | "plan";
 
@@ -85,9 +86,11 @@ const Header: React.FC<HeaderProps> = ({
             className="term-select"
             aria-label="Term"
           >
-            <option value="summer 26">Summer 26</option>
-            <option value="fall 26">Fall 26</option>
-            <option value="spring 26">Spring 26</option>
+            {TERMS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
         {isDesktop && tabButtons}
