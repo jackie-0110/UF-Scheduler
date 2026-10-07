@@ -94,7 +94,7 @@ const Graph: React.FC<GraphProps> = ({
           {
             selector: "node",
             style: {
-              "background-color": "#0021A5",
+              "background-color": "#0f44cd",
               label: "data(id)",
               color: "white",
               "text-valign": "center",
@@ -110,15 +110,15 @@ const Graph: React.FC<GraphProps> = ({
           {
             selector: "node.selected",
             style: {
-              "background-color": "#FA4616",
+              "background-color": "#FA4618",
             },
           },
           {
             selector: "edge",
             style: {
               width: 12,
-              "line-color": "#ccc",
-              "target-arrow-color": "#ccc",
+              "line-color": "#b6c7f3",
+              "target-arrow-color": "#b6c7f3",
               "arrow-scale": 1.2,
               "target-arrow-shape": "triangle",
               "target-arrow-fill": "filled",
@@ -268,13 +268,13 @@ const Graph: React.FC<GraphProps> = ({
     });
   };
   return (
-    <div className="h-[calc(100vh-108px)]">
+    <div className="h-full">
         <div className="department-select">
         <MajorSelect selectedMajor={selectedMajor} setSelectedMajor={setSelectedMajor} />
         </div>
       <div ref={cyContainerRef} id="cytoscape-container"></div>
       <div className={`loader-container ${loading ? "show" : ""}`}>
-        <ClipLoader color="#ffffff" loading={loading} size={150} />
+        <ClipLoader color="#0f44cd" loading={loading} size={150} />
       </div>
     </div>
   );

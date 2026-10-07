@@ -1,26 +1,29 @@
 .model-plan {
-  color: white;
+  color: var(--csu-ink);
+  font-size: 0.875rem;
   position: relative;
   border-collapse: collapse;
   /* transform: translateX(50%); */
 }
 
 .model-plan th, .model-plan td {
-  border: 1px solid white; /* Add border to table cells */
-  padding: 6px; /* Add some padding for better readability */
+  border: 1px solid var(--csu-line);
+  padding: 8px 10px; /* Add some padding for better readability */
 }
 
 .model-plan tr:nth-child(even) {
-  background-color: black;
+  background-color: #ffffff;
 }
 
 .model-plan tr:nth-child(odd) {
-  background-color: rgb(28, 28, 28);
+  background-color: var(--csu-subtle);
 }
 
 .model-plan .thicker-border td {
-  border-top: 2px solid white;
-  border-bottom: 2px solid white;
+  border-top: 2px solid var(--csu-line);
+  border-bottom: 2px solid var(--csu-line);
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
 }
 
 .table-container {
@@ -32,28 +35,13 @@
   position: relative;
 }
 
-@media (max-width: 1000px) {
-  .model-plan-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    height: 80vh;
-    /* overflow-y: auto; */
-    position: relative;
-  }
-}
-
-@media (min-width: 1001px) {
-  .model-plan-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    height: calc(100vh - 43px);
-    width: 52vw;
-    /* overflow-y: auto; */
-    position: relative;
-    padding: 0px 2px 16px 12px;
-  }
+.model-plan-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  padding: 0 12px 40px 12px;
 }

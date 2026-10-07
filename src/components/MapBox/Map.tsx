@@ -657,7 +657,7 @@ const Map: React.FC<MapProps> = ({ term, year }) => {
             style={{
               margin: "0 4px",
               padding: "0 4px",
-              backgroundColor: selectedDay === day ? "grey" : "initial",
+              backgroundColor: selectedDay === day ? "var(--csu-blue)" : "initial",
               color: selectedDay === day ? "white" : "black",
               fontWeight: "bold",
               borderRadius: "4px",
@@ -677,7 +677,7 @@ const Map: React.FC<MapProps> = ({ term, year }) => {
             style={{
               margin: "0 4px",
               padding: "2px 1px",
-              backgroundColor: mapFullscreen ? "grey" : "initial",
+              backgroundColor: mapFullscreen ? "var(--csu-blue)" : "initial",
               color: mapFullscreen ? "white" : "black",
               fontWeight: "bold",
               borderRadius: "4px",
@@ -702,7 +702,7 @@ const Map: React.FC<MapProps> = ({ term, year }) => {
             style={{
               margin: "0 4px",
               padding: "4px 4px",
-              backgroundColor: transportMode === mode ? "grey" : "initial",
+              backgroundColor: transportMode === mode ? "var(--csu-blue)" : "initial",
               color: transportMode === mode ? "white" : "black",
               fontWeight: "bold",
               borderRadius: "4px",
@@ -750,7 +750,7 @@ const Map: React.FC<MapProps> = ({ term, year }) => {
         type="button"
         className="question-mark-button inline-block rounded-full bg-primary p-2 uppercase leading-normal text-white shadow-[0_4px_9px_-4px_#ff7f1f] transition duration-150 ease-in-out hover:bg-primary-600 hover:shadow-[0_8px_9px_-4px_rgba(255,127,31,0.3),0_4px_18px_0_rgba(255,127,31,0.2)] focus:bg-primary-600 focus:shadow-[0_8px_9px_-4px_rgba(255,127,31,0.3),0_4px_18px_0_rgba(255,127,31,0.2)] focus:outline-none focus:ring-0 active:bg-primary-700 active:shadow-[0_8px_9px_-4px_rgba(255,127,31,0.3),0_4px_18px_0_rgba(255,127,31,0.2)]"
         style={{
-          backgroundColor: "#d46919",
+          backgroundColor: "var(--csu-orange)",
         }}
         onClick={() => setShowHelp(!showHelp)}
       >

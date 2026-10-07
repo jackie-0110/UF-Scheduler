@@ -2,8 +2,9 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%) translateX(20px) translateY(10px);
-  background-color: black;
+  background-color: var(--csu-ink);
   color: white;
+  border-radius: 8px;
   font-size: 14px;
   font-weight:500;
   padding: 6px;
@@ -37,8 +38,7 @@
 
 @media (max-width: 1000px) {
   .mappp {
-    height: 80vh !important;
-    border-radius: 8px;
+    height: var(--pane-h) !important;
   }
   .day-selector {
     position: absolute;
@@ -65,7 +65,7 @@
 
 @media (min-width: 1001px) {
   .mappp {
-    height: calc(100vh - 43px) !important;
+    height: var(--pane-h) !important;
   }
   .day-selector {
     top: 10px;

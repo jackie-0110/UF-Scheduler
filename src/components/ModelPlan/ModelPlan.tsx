@@ -74,8 +74,8 @@ const ModelPlan: React.FC = () => {
                 textAlign: "center",
                 fontWeight: "600",
                 fontSize: "18px",
-                borderTop: "2px solid white",
-                borderBottom: "2px solid white",
+                borderTop: "2px solid var(--csu-line)",
+                borderBottom: "2px solid var(--csu-line)",
               }}
             >
               Semester One
@@ -86,8 +86,8 @@ const ModelPlan: React.FC = () => {
                 textAlign: "center",
                 fontWeight: "600",
                 fontSize: "18px",
-                borderTop: "2px solid white",
-                borderBottom: "2px solid white",
+                borderTop: "2px solid var(--csu-line)",
+                borderBottom: "2px solid var(--csu-line)",
               }}
             >
               Credits
@@ -105,7 +105,7 @@ const ModelPlan: React.FC = () => {
             let semesterText = false;
 
             let rowStyle = {
-              backgroundColor: index % 2 === 0 ? "black" : "rgb(28, 28, 28)",
+              backgroundColor: index % 2 === 0 ? "#ffffff" : "#f5f5f5",
             };
 
             // Check for merging conditions
@@ -117,21 +117,21 @@ const ModelPlan: React.FC = () => {
               descriptionSpan = 0; // Skip rendering
               creditsSpan = 0; // Skip rendering
               semesterText = true;
-              lastRowColor = index % 2 === 0 ? "black" : "rgb(28, 28, 28)";
+              lastRowColor = index % 2 === 0 ? "#ffffff" : "#f5f5f5";
             } else if (courseText === descriptionText) {
               courseSpan = 2;
               descriptionSpan = 0; // Skip rendering
-              lastRowColor = index % 2 === 0 ? "black" : "rgb(28, 28, 28)";
+              lastRowColor = index % 2 === 0 ? "#ffffff" : "#f5f5f5";
             } else if (descriptionText === creditsText) {
               descriptionSpan = 2;
               creditsSpan = 0; // Skip rendering
-              lastRowColor = index % 2 === 0 ? "black" : "rgb(28, 28, 28)";
+              lastRowColor = index % 2 === 0 ? "#ffffff" : "#f5f5f5";
             } else if (!courseText && descriptionText) {
               courseSpan = 2;
               courseText = descriptionText;
               descriptionSpan = 0; // Skip rendering
               creditsSpan = 1;
-              lastRowColor = index % 2 === 0 ? "black" : "rgb(28, 28, 28)";
+              lastRowColor = index % 2 === 0 ? "#ffffff" : "#f5f5f5";
             } else if (!creditsText && descriptionText) {
               descriptionSpan = 2;
               creditsSpan = 0;
@@ -195,7 +195,7 @@ const ModelPlan: React.FC = () => {
 
   return (
     <div className="model-plan-container overflow-y-scroll">
-      <h1 className="text-[26px] font-[600] text-white mt-2">
+      <h1 className="text-2xl font-bold text-black mt-4 mb-2">
         Model Semester Plans
       </h1>
       <Select
@@ -206,7 +206,7 @@ const ModelPlan: React.FC = () => {
         }
         onChange={handleMajorChange}
         placeholder="Select a major..."
-        className="mb-4 text-black bg-gray-200 placeholder-gray-500 transition-colors duration-500 w-[80%] h-8 rounded font-sans font-semibold"
+        className="mb-6 text-black text-sm w-[80%]"
         menuPortalTarget={document.body} // Append the dropdown to the body element
         styles={{
           menuPortal: (base) =>
@@ -215,8 +215,8 @@ const ModelPlan: React.FC = () => {
             ({
               ...base,
               boxShadow: "none", // Remove the box shadow to eliminate the thick border
-              border: "1px solid #ccc", // Optional: Customize the border style
-              borderRadius: "4px", // Adjust this value to control the border radius of the control
+              border: "1px solid var(--csu-line)",
+              borderRadius: "12px",
             } as CSSObjectWithLabel),
         }}
       />
