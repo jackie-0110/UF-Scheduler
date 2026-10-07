@@ -10,7 +10,10 @@ import { AuthProvider } from 'react-oidc-context';
 import { cognitoConfig } from './config/api';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-ReactGA.initialize(process.env.REACT_APP_GA_TOKEN as string);
+// react-ga4 throws on an empty measurement ID, which would blank the whole app
+if (process.env.REACT_APP_GA_TOKEN) {
+  ReactGA.initialize(process.env.REACT_APP_GA_TOKEN);
+}
 root.render(
   <React.StrictMode>
     <AuthProvider {...cognitoConfig}>
