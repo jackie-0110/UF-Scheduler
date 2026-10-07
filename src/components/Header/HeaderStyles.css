@@ -1,129 +1,151 @@
 .header-container {
   position: fixed;
-  top:0;
+  top: 0;
   left: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: auto;
-  flex-wrap: wrap;
-  flex-grow: 1;
-  margin-left: 0px;
   z-index: 1000;
+  background-color: #ffffffe6;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--csu-line);
 }
 
 .header {
-  /* position: fixed;
-  top: 0;
-  left: 0; */
   width: 100%;
-  background-color: rgb(0, 0, 0);
-  color: white;
-  height: 43px;
-  text-align: right;
-  font-size: large;
-  z-index: 1000;
-  border-bottom: 0.5px solid #a9a9a9;
-  align-items: center;
+  height: var(--header-h);
+  color: var(--csu-ink);
   display: flex;
-  padding: 0 10px; /* Added padding */
+  align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+}
+
+/* Sub-page top bar (About, Privacy, 404) */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #ffffffe6;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--csu-line);
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.brand-logo {
+  height: 36px;
+  width: auto;
+}
+
+.brand .title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.1;
 }
 
 .credits-container {
-  /* margin-right: auto; */
   display: flex;
   align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background-color: var(--csu-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.credits-label {
+  color: var(--csu-muted);
+}
+
+.credits-value {
+  color: var(--csu-blue);
+}
+
+.button-container {
+  display: flex;
+  white-space: nowrap;
+}
+
+.Button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--csu-ink);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.Button.grayed:hover {
+  color: var(--csu-blue);
+}
+
+.Button.show {
+  color: var(--csu-blue);
+  font-weight: 500;
+  border-bottom-color: var(--csu-blue);
 }
 
 @media (min-width: 1001px) {
   .button-container {
-    display: flex;
-    white-space: nowrap;
-    overflow: hidden;
-    width: 100%;
+    align-self: stretch;
     justify-content: center;
+    gap: 28px;
+    min-width: 0;
   }
   .Button {
-    background-color: #292929;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    padding: 5px 10px;
-    min-width: 10vw;
-    color: white;
-    font-size: 20px;
-    margin-top: 8px;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: clip;
-  }
-  .label {
-    margin-left: 8px;
+    padding: 0 2px;
   }
 }
 
 @media (max-width: 1000px) {
+  .header {
+    padding: 0 12px;
+  }
+  .brand-logo {
+    height: 30px;
+  }
   .button-container {
-    display: flex;
     width: 100%;
-    border-bottom: 0.5px solid #a9a9a9;
-    background-color: black;
+    height: 40px;
+    border-top: 1px solid var(--csu-line);
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  
+  .button-container::-webkit-scrollbar {
+    display: none;
+  }
   .Button {
-    background-color: #292929;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    font-size: 16px;
-    border-left: 1px solid #a9a9a9;
-    border-right: 1px solid #a9a9a9;
-    width: 100%; /* Ensure buttons take full width of their flex container */
+    flex: 1 0 auto;
+    padding: 0 12px;
   }
 }
 
-.icon-text-container {
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  flex-shrink: 0;
-  padding: 0 5px;
-}
-
-.Button:first-child {
-  margin-left: 0;
-  border-left: none;
-}
-
-.Button:last-child {
-  margin-right: 0;
-  border-right: none;
-}
-
-.Button.grayed {
-  opacity: 0.4;
-}
-.Button.show {
-  opacity: 1;
-}
-.Button.ai-chat-tab.show {
-  background: linear-gradient(180deg, #0021a5 0%, #292929 100%);
-}
-
 .menu-button {
-  z-index: 99999;
   transition: opacity 0.3s ease;
-  min-width: 18px;
-  margin-right: 20px;
+  flex-shrink: 0;
 }
 
 .faded {
@@ -131,54 +153,19 @@
 }
 
 .buyButton {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  color: #ffffff;
-  background-color: #292929;
-  border-radius: 5px;
-  border: 1px solid transparent;
-  padding: 0.4rem;
-  font-size: 1rem;
-  letter-spacing: 0.6px;
-  box-shadow: 0px 1px 2px rgba(190, 190, 190, 0.5);
-  font-family: cursive;
-  /* position: fixed;
-  bottom: 25px;
-  left: 0px;
-  z-index: 10001; */
-  /* margin-left: 30px; */
-  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--csu-ink);
+  white-space: nowrap;
 }
+
 .buyButton:hover,
-.buyButton:active,
-.buyButton:focus {
-  /* text-decoration: underline; */
-  box-shadow: 0px 1px 2px 2px rgba(190, 190, 190, 0.5);
-  opacity: 0.85;
-  color: #ffffff;
-}
-
-.coffeeImage {
-  height: 2vh;
-  box-shadow: none;
-  border: none;
-  vertical-align: middle;
-}
-
-.coffeeButtonText {
-  margin-left: 2px;
-  margin-right: 2px;
-  font-size: 0.8rem;
-  vertical-align: middle;
-}
-
-.gatorEmoji {
-  font-size: 0.8rem;
+.buyButton:focus-visible {
+  color: var(--csu-blue);
 }
 
 .rounded-dropdown {
-  border-radius: 5px; /* Adjust the value as needed */
+  border-radius: 5px;
   text-align: center;
 }
 
@@ -193,10 +180,10 @@
 }
 
 .auth-avatar {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0021a5 0%, #fa4616 100%);
+  background: var(--csu-blue);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 600;
@@ -205,7 +192,6 @@
   justify-content: center;
   flex-shrink: 0;
   user-select: none;
-  letter-spacing: 0.02em;
   overflow: hidden;
 }
 
@@ -217,7 +203,7 @@
 }
 
 .auth-email {
-  color: #9ca3af;
+  color: var(--csu-muted);
   font-size: 0.75rem;
   max-width: 140px;
   overflow: hidden;
@@ -225,41 +211,59 @@
   white-space: nowrap;
 }
 
+/* Black pill, same as the Sign In button on ufcsu.org */
+.auth-signin-btn,
 .auth-signout-btn {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #9ca3af;
-  font-size: 0.72rem;
-  padding: 3px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.auth-signout-btn:hover {
-  color: #f87171;
-  border-color: rgba(248, 113, 113, 0.4);
+  font-size: 0.875rem;
+  font-weight: 300;
+  padding: 4px 16px;
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .auth-signin-btn {
+  background: var(--csu-ink);
+  color: #fff;
+}
+
+.auth-signout-btn {
   background: none;
-  border: 1px solid rgba(0, 33, 165, 0.5);
-  color: #93b4ff;
-  font-size: 0.72rem;
-  padding: 3px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid var(--csu-line);
+  color: var(--csu-ink);
 }
 
 .auth-signin-btn:hover {
-  color: #bdd0ff;
-  border-color: rgba(0, 33, 165, 0.8);
-  background-color: rgba(0, 33, 165, 0.15);
+  transform: scale(1.05);
+}
+
+.auth-signout-btn:hover {
+  color: var(--csu-orange);
+  border-color: var(--csu-orange);
+}
+
+/* Term applies to the whole app, so it lives beside the brand */
+.term-select {
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--csu-line);
+  border-radius: 9999px;
+  background-color: var(--csu-surface);
+  color: var(--csu-blue);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.term-select:focus-visible {
+  outline: 2px solid var(--csu-blue);
+  outline-offset: 1px;
+}
+
+@media (max-width: 500px) {
+  .brand .title {
+    display: none;
+  }
 }

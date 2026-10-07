@@ -22,22 +22,20 @@
 
 .livechat-signin-icon {
   font-size: 2.6rem;
-  color: #fa4616;
-  opacity: 0.7;
-  filter: drop-shadow(0 0 12px rgba(250, 70, 22, 0.2));
+  color: var(--csu-orange);
 }
 
 .livechat-signin-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--csu-ink);
   margin: 0;
-  letter-spacing: 0.01em;
 }
 
 .livechat-signin-subtitle {
   font-size: 0.8rem;
-  color: #7a8899;
+  color: var(--csu-muted);
+  font-weight: 300;
   margin: 0;
   text-align: center;
 }
@@ -47,9 +45,9 @@
   padding: 9px 26px;
   cursor: pointer;
   border-radius: 8px;
-  border: 1px solid rgba(250, 70, 22, 0.35);
-  background: rgba(250, 70, 22, 0.12);
-  color: #fa6e42;
+  border: none;
+  background: var(--csu-blue);
+  color: #ffffff;
   font-size: 0.82rem;
   font-family: "Sora", sans-serif;
   font-weight: 500;
@@ -58,10 +56,7 @@
 }
 
 .livechat-signin-btn:hover {
-  background: rgba(250, 70, 22, 0.22);
-  border-color: rgba(250, 70, 22, 0.55);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(250, 70, 22, 0.15);
+  transform: scale(1.05);
 }
 
 .chat-panel {
@@ -76,9 +71,9 @@
   position: absolute;
   top: 0px; /* Adjust this value to be the negative of the padding value */
   right: -10px; /* Adjust this value to be the negative of the padding value */
-  font-size: 25px;
+  font-size: 22px;
   cursor: pointer;
-  color: white;
+  color: var(--csu-muted);
 }
 
 .chat-content {
@@ -122,19 +117,14 @@
   flex-grow: 1;
   margin-right: 10px; /* Adjust this value to your needs */
   /* outline-style: none; */
-  border-radius: 2px;
-  padding-left: 5px;
-  padding-top: 2px;
-  padding-bottom: 2px;
-  font-size: 1rem;
+  border: 1px solid var(--csu-line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
 }
 
 .text-input::placeholder {
-  color: #8893a2;
-}
-
-.text-white {
-  color: white;
+  color: var(--csu-muted);
 }
 
 .message-container {
@@ -148,7 +138,7 @@
 
 .timestamp {
   font-size: 0.8em;
-  color: #ccc; /* Adjust color to your preference */
+  color: var(--csu-muted);
   display: inline-block;
   vertical-align: bottom;
   align-self:center;

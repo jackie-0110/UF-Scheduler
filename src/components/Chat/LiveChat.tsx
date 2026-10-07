@@ -300,7 +300,7 @@ const Chat: React.FC<ChatProps> = ({
     if (!isUsernameSet) {
       return (
         <div>
-          <h2 className="text-white text-center choose-username-text">
+          <h2 className="text-black text-center choose-username-text">
             Choose a Username
           </h2>
           <div className="chat-input-container">
@@ -314,7 +314,7 @@ const Chat: React.FC<ChatProps> = ({
             />
             <IoSend
               onClick={handleUsernameSubmit}
-              className="text-white cursor-pointer"
+              className="text-accent-1 cursor-pointer"
             />
           </div>
         </div>
@@ -333,7 +333,7 @@ const Chat: React.FC<ChatProps> = ({
         />
         <IoSend
           onClick={handleSendMessage}
-          className="text-white cursor-pointer"
+          className="text-accent-1 cursor-pointer"
         />
       </div>
     );
@@ -342,7 +342,7 @@ const Chat: React.FC<ChatProps> = ({
   return (
     <div className="chat-panel" ref={containerRef}>
       <IoClose className="close-icon" onClick={handleToggleChat} />
-      <h1 className="text-white text-xl">Chat</h1>
+      <h1 className="text-black text-lg font-bold">Chat</h1>
       <div className="chat-content">
         <div className="chat-messages-container">
           <div className="chat-messages" ref={chatMessagesRef}>
@@ -350,7 +350,7 @@ const Chat: React.FC<ChatProps> = ({
               ? messages.map((msg, index) => (
                   <div
                     key={msg.timestamp + msg.user}
-                    className="message-container text-white"
+                    className="message-container text-black text-sm"
                     id={`message-${index}`}
                   >
                     <div className="message-header">

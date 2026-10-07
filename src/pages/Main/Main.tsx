@@ -5,9 +5,8 @@ import "./MainStyles.css";
 import { Course } from "../../components/CourseUI/CourseTypes";
 import Calendar from "../../components/Calendar/Calendar";
 import Header from "../../components/Header/Header";
-import LikedSelectedCourses from "../../components/CoursesHandler/LikedSelectedCourses";
-import { AiOutlineMessage } from "react-icons/ai";
-import { IoClose } from "react-icons/io5";
+import { AiOutlineMessage, AiOutlineCalendar } from "react-icons/ai";
+import { IoClose, IoSearch } from "react-icons/io5";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import Footer from "../../components/Footer/Footer";
 import MapBox from "../../components/MapBox/Map";
@@ -58,16 +57,17 @@ const Main = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTrigger, setSearchTrigger] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<
-    "calendar" | "graph" | "map" | "plan" | "ai" | ""
+    "calendar" | "graph" | "map" | "plan" | ""
   >("");
   const [hasBeenLoaded, setLoaded] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  // On small screens only one of the two panes is visible at a time
+  const [mobilePane, setMobilePane] = useState<"courses" | "view">("courses");
 
-  const [isChatVisible, setIsChatVisible] = useState<boolean>(() => {
-    const hasClosedChat = localStorage.getItem("hasClosedChat");
-    return hasClosedChat ? false : true;
-  });
+  // Live chat and the AI assistant share one panel, closed until asked for
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [chatTab, setChatTab] = useState<"live" | "ai">("live");
+  const isChatVisible = isChatOpen && chatTab === "live";
   
   const [hasNewMessage, setHasNewMessage] = useState<boolean>(false);
 
@@ -82,16 +82,15 @@ const Main = () => {
     }
   });
 
-  const [showArrow, setShowArrow] = useState<boolean>(() => {
-    const storedShowArrow = localStorage.getItem("hasClickedCalendar");
-    if (storedShowArrow) {
-      return false;
-    } else {
-      return true;
-    }
-  });
-
   const [activeUsers, setActiveUsers] = useState<number>(0);
+
+  const showView = useCallback(
+    (view: "calendar" | "graph" | "map" | "plan") => {
+      setCurrentView(view);
+      setMobilePane("view");
+    },
+    []
+  );
 
   useEffect(() => {
     setCurrentView("calendar");
@@ -125,14 +124,14 @@ const Main = () => {
             break;
           }
           case "switch_scheduler_view":
-            setCurrentView(
-              action.arguments.view as
-                | "calendar"
-                | "graph"
-                | "map"
-                | "plan"
-                | "ai"
-            );
+            if (action.arguments.view === "ai") {
+              setChatTab("ai");
+              setIsChatOpen(true);
+            } else {
+              showView(
+                action.arguments.view as "calendar" | "graph" | "map" | "plan"
+              );
+            }
             break;
           case "remove_course_from_scheduler": {
             const code = action.arguments.course_code as string;
@@ -194,37 +193,19 @@ const Main = () => {
     );
   };
 
-  const calendarView = useCallback(() => {
-    setCurrentView("calendar");
-  }, []);
-
-  const graphView = useCallback(() => {
-    setCurrentView("graph");
-  }, []);
-
-  const mapView = useCallback(() => {
-    setCurrentView("map");
-  }, []);
-
-  const planView = useCallback(() => {
-    setCurrentView("plan");
-  }, []);
-
-  const aiChatView = useCallback(() => {
-    setCurrentView("ai");
-    setIsChatVisible(false);
-  }, []);
-
   const handleNewMessage = useCallback(() => {
     if (!isChatVisible) {
       setHasNewMessage(true);
     }
   }, [isChatVisible]);
 
-  const handleOpenChat = () => {
-    setIsChatVisible(true);
-    setHasNewMessage(false);
-    localStorage.setItem("lastReadTimestamp", new Date().toISOString());
+  const openChat = (tab: "live" | "ai") => {
+    setChatTab(tab);
+    setIsChatOpen(true);
+    if (tab === "live") {
+      setHasNewMessage(false);
+      localStorage.setItem("lastReadTimestamp", new Date().toISOString());
+    }
   };
 
   useEffect(() => {
@@ -289,76 +270,75 @@ const Main = () => {
 
   };
 
+  const viewLabels = {
+    calendar: "Schedule",
+    graph: "Prerequisites",
+    plan: "Model Plans",
+    map: "Map",
+    "": "Schedule",
+  };
+
   return (
-    <div className="sora-unique">
-      <div className={`chat ${isChatVisible ? "visible" : "hidden"}`}>
-        <Chat
-          isChatVisible={isChatVisible}
-          setIsChatVisible={setIsChatVisible}
-          handleNewMessage={handleNewMessage}
-        />
+    <div className={`sora-unique scheduler-app show-${mobilePane}`}>
+      <div className={`chat-dock ${isChatOpen ? "open" : ""}`}>
+        <div className="chat-dock-tabs" role="tablist">
+          <button
+            role="tab"
+            aria-selected={chatTab === "live"}
+            className={chatTab === "live" ? "active" : ""}
+            onClick={() => openChat("live")}
+          >
+            Live chat
+            {hasNewMessage && <span className="badge"></span>}
+          </button>
+          <button
+            role="tab"
+            aria-selected={chatTab === "ai"}
+            className={chatTab === "ai" ? "active" : ""}
+            onClick={() => openChat("ai")}
+          >
+            AI assistant
+          </button>
+          <button
+            className="chat-dock-close"
+            aria-label="Close chat"
+            onClick={() => setIsChatOpen(false)}
+          >
+            <IoClose size={20} />
+          </button>
+        </div>
+        <div className="chat-dock-pane" hidden={chatTab !== "live"}>
+          <Chat
+            isChatVisible={isChatVisible}
+            setIsChatVisible={setIsChatOpen}
+            handleNewMessage={handleNewMessage}
+          />
+        </div>
+        <div className="chat-dock-pane" hidden={chatTab !== "ai"}>
+          <AIChat />
+        </div>
       </div>
       <button
-        className={`chat-toggle-button ${isChatVisible || currentView === "ai" ? "hide" : "visible"} ${
+        className={`chat-toggle-button ${isChatOpen ? "hide" : "visible"} ${
           hasNewMessage ? "wiggle" : ""
         }`}
-        onClick={handleOpenChat}
+        onClick={() => openChat(chatTab)}
+        aria-label="Open chat"
       >
-        <AiOutlineMessage size={30} style={{ transform: "scaleX(-1)" }} />
+        <AiOutlineMessage size={28} style={{ transform: "scaleX(-1)" }} />
         {hasNewMessage && <span className="badge"></span>}
       </button>
       <Header
-        calendarView={calendarView}
-        graphView={graphView}
-        mapView={mapView}
-        planView={planView}
-        aiChatView={aiChatView}
+        showView={showView}
         currentView={currentView}
         selectedCourses={selectedCourses}
-        isDrawerOpen={isDrawerOpen}
-        setIsDrawerOpen={setIsDrawerOpen}
         windowWidth={windowWidth}
-        showArrow={showArrow}
-        setShowArrow={setShowArrow}
-        setTerm={setTerm}
-        setYear={setYear}
+        selectedValue={selectedValue}
+        handleTermChange={handleTermChange}
       />
-      <div
-        className={`overlay ${isDrawerOpen ? "open" : "closed"}`}
-        onClick={() => setIsDrawerOpen(false)}
-      ></div>
       <div className="content-wrapper">
-        <div className="flex flexImage course-display bg-[rgb(0,0,0)]">
-          {windowWidth < 1001 && (
-            <div
-              className={`drawer overflow-y-auto ${
-                isDrawerOpen ? "" : "closed"
-              }`}
-            >
-              <button
-                className="drawer-close-button"
-                onClick={() => setIsDrawerOpen(false)}
-              >
-                <IoClose className="mt-1 text-white" size={18} />
-              </button>
-
-              <LikedSelectedCourses
-                selectedCourses={selectedCourses}
-                setSelectedCourses={setSelectedCourses}
-                setLoaded={setLoaded}
-                windowWidth={windowWidth}
-                customAppointments={customAppointments}
-                setCustomAppointments={setCustomAppointments}
-                setSearchTerm={setSearchTerm}
-                setDebouncedSearchTerm={setDebouncedSearchTerm}
-                searchTrigger={searchTrigger}
-                setSearchTrigger={setSearchTrigger}
-              />
-            </div>
-          )}
-          <div
-            className={`flex flex-col items-start basis-full dark:bg-gray-800 transition-colors duration-500 overflow-y-hidden p-0 rounded-none courses-handler`}
-          >
+        <div className="course-display">
+          <div className="courses-pane">
             <CoursesHandler
               selectedCourses={selectedCourses}
               setSelectedCourses={setSelectedCourses}
@@ -375,35 +355,12 @@ const Main = () => {
               term={term}
               year={year}
               selectedValue={selectedValue}
-              handleTermChange={handleTermChange}
               searchTrigger={searchTrigger}
               setSearchTrigger={setSearchTrigger}
             />
           </div>
-          {windowWidth > 1000 && (
-            <div
-              className="selected-courses overflow-y-auto"
-              style={{
-                height: "calc(100vh - 43px)",
-                background: "rgb(0,0,0)",
-              }}
-            >
-              <LikedSelectedCourses
-                selectedCourses={selectedCourses}
-                setSelectedCourses={setSelectedCourses}
-                setLoaded={setLoaded}
-                windowWidth={windowWidth}
-                customAppointments={customAppointments}
-                setCustomAppointments={setCustomAppointments}
-                setSearchTerm={setSearchTerm}
-                setDebouncedSearchTerm={setDebouncedSearchTerm}
-                searchTrigger={searchTrigger}
-                setSearchTrigger={setSearchTrigger}
-              />
-            </div>
-          )}
-          {currentView === "graph" && (
-            <div id="display-write">
+          <div className="view-pane">
+            {currentView === "graph" && (
               <Graph
                 setDebouncedSearchTerm={setDebouncedSearchTerm}
                 setSearchTerm={setSearchTerm}
@@ -416,10 +373,8 @@ const Main = () => {
                 term={term}
                 year={year}
               />
-            </div>
-          )}
-          {currentView === "calendar" && (
-            <div className="calendar-container bg-[rgb(0,0,0)]">
+            )}
+            {currentView === "calendar" && (
               <Calendar
                 selectedCourses={selectedCourses}
                 customAppointments={customAppointments}
@@ -428,30 +383,35 @@ const Main = () => {
                 year={year}
                 key={calendarResetKey}
               />
-            </div>
-          )}
-          {currentView === "map" && (
-            // Add the map component here
-            <div className="map-container bg-[rgb(0,0,0)]">
-              <MapBox term={term} year={year} />
-            </div>
-          )}
-          {currentView === "plan" && (
-            <div className="order-3 plan-container-container-lol">
-              <div className="plan-container bg-[rgb(0,0,0)]">
-                <ModelPlan />
+            )}
+            {currentView === "map" && (
+              <div className="map-container">
+                <MapBox term={term} year={year} />
               </div>
-            </div>
-          )}
-          <div
-            className={`ai-chat-container bg-[rgb(0,0,0)]${
-              currentView !== "ai" ? " hidden" : ""
-            }`}
-          >
-            <AIChat />
+            )}
+            {currentView === "plan" && <ModelPlan />}
           </div>
         </div>
       </div>
+      <nav className="bottom-bar" aria-label="Panes">
+        <button
+          className={mobilePane === "courses" ? "active" : ""}
+          onClick={() => setMobilePane("courses")}
+        >
+          <IoSearch size={20} />
+          Courses
+          {selectedCourses.length > 0 && (
+            <span className="bottom-bar-count">{selectedCourses.length}</span>
+          )}
+        </button>
+        <button
+          className={mobilePane === "view" ? "active" : ""}
+          onClick={() => setMobilePane("view")}
+        >
+          <AiOutlineCalendar size={20} />
+          {viewLabels[currentView]}
+        </button>
+      </nav>
       <Footer />
       <div className="floating-text">
         <div className="green-circle"></div>
