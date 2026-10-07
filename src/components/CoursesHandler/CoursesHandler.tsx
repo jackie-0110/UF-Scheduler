@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import CourseSearch from "./CourseSearch/CourseSearch";
 import ShowFilteredCourses from "./ShowFilteredCourses/ShowFilteredCourses";
+import LikedSelectedCourses from "./LikedSelectedCourses";
 import { Course } from "../CourseUI/CourseTypes";
 import "./CourseHandlerStyles.css"
 
@@ -20,7 +21,6 @@ interface CoursesHandlerProps {
   term: string;
   year: string;
   selectedValue: string;
-  handleTermChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   searchTrigger: boolean;
   setSearchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -42,7 +42,6 @@ const CoursesHandler: React.FC<CoursesHandlerProps> = (
     term,
     year,
     selectedValue,
-    handleTermChange,
     searchTrigger,
     setSearchTrigger
   }
@@ -58,7 +57,7 @@ const CoursesHandler: React.FC<CoursesHandlerProps> = (
   }, [selectedMajor]);
 
   return (
-    <div className="bg-[rgb(0,0,0)] shadow-md transition-shadow duration-300 min-w-full min-h-full course-handler">
+    <div className="course-handler">
       {/* <MajorSelect 
         selectedMajor={selectedMajor}
         setSelectedMajor={setSelectedMajor}
@@ -69,8 +68,16 @@ const CoursesHandler: React.FC<CoursesHandlerProps> = (
         setSearchTerm={setSearchTerm}
         searchTrigger={searchTrigger}
         setSearchTrigger={setSearchTrigger}
-        selectedValue={selectedValue}
-        handleTermChange={handleTermChange}
+      />
+      <LikedSelectedCourses
+        selectedCourses={selectedCourses}
+        setSelectedCourses={setSelectedCourses}
+        setLoaded={setLoaded}
+        customAppointments={customAppointments}
+        setCustomAppointments={setCustomAppointments}
+        setSearchTerm={setSearchTerm}
+        setDebouncedSearchTerm={setDebouncedSearchTerm}
+        setSearchTrigger={setSearchTrigger}
       />
       <ShowFilteredCourses
         debouncedSearchTerm={debouncedSearchTerm}

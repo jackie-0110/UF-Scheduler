@@ -1,13 +1,8 @@
-@media (max-width: 1000px) {
-  .filtered-courses-container {
-    max-height: calc(80vh - 8rem);
-  }
-}
-
-@media (min-width: 1001px) {
-  .filtered-courses-container {
-    max-height: calc(100vh - 128px);
-  }
+/* room for the card shadows inside the scroll container */
+.filtered-courses-container {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px;
 }
 
 @keyframes fadeInWave {
@@ -50,4 +45,75 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
+}
+.search-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--csu-muted);
+}
+
+.search-status strong {
+  font-weight: 600;
+  color: var(--csu-ink);
+}
+
+/* Labelled actions on each course card */
+.course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 4px 0;
+}
+
+.course-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border: 1px solid var(--csu-line);
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--csu-ink);
+  background-color: var(--csu-surface);
+  white-space: nowrap;
+}
+
+.course-action:hover {
+  border-color: var(--csu-blue);
+  color: var(--csu-blue);
+}
+
+.course-action.primary {
+  border-color: var(--csu-blue);
+  background-color: var(--csu-blue);
+  color: #ffffff;
+}
+
+.course-action.primary:hover {
+  background-color: #0c38aa;
+  color: #ffffff;
+}
+
+.course-action.remove:hover {
+  border-color: var(--csu-orange);
+  color: var(--csu-orange);
+}
+
+.course-action.sections {
+  margin-left: auto;
+  border-color: transparent;
+  color: var(--csu-muted);
+}
+
+.course-action.active {
+  border-color: var(--csu-blue);
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
 }

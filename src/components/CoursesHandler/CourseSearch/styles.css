@@ -1,38 +1,70 @@
 #search-input:focus {
-    outline: none;
+  outline: none;
 }
-  
+
 .search-container {
   display: flex;
   align-items: center;
-  background-color: #f0f0f0;
-  border-radius: 5px;
-  padding: 2px 5px 2px 10px;
+  background-color: var(--csu-surface);
+  border: 1px solid var(--csu-line);
+  border-radius: 12px;
+  padding: 2px 6px 2px 14px;
+  margin: 0 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-container:focus-within {
+  border-color: var(--csu-blue);
+  box-shadow: 0 0 0 3px var(--csu-blue-tint);
 }
 
 .search-icon {
   margin-right: 8px;
-  color: #888;
+  color: var(--csu-muted);
+  flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  padding: 7px 5px;
+  min-width: 0;
+  padding: 8px 5px;
   border: none;
   outline: none;
   background-color: transparent;
-  color: #000;
+  color: var(--csu-ink);
 }
-  
+
+.search-input::placeholder {
+  color: var(--csu-muted);
+  font-weight: 300;
+}
+
 .term-year-dropdown {
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 7px;
-  border-radius: 0 5px 5px 0;
-  border-left: 1px solid #6d727e;
+  padding: 4px 4px 4px 10px;
+  border-left: 1px solid var(--csu-line);
+  background-color: transparent;
+  color: var(--csu-blue);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .term-year-dropdown:focus {
   outline: none;
-  background-color: #e0e0e0;
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 2px;
+  border-radius: 9999px;
+  color: var(--csu-muted);
+  flex-shrink: 0;
+}
+
+.search-clear:hover {
+  color: var(--csu-ink);
+  background-color: var(--csu-subtle);
 }

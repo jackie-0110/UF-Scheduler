@@ -12,7 +12,6 @@ import {
   PiVideoCameraSlashBold,
   PiPencilBold
 } from "react-icons/pi";
-import { Tooltip } from 'react-tooltip';
 import "./ShowFilteredCourses.css";
 import { API_URLS, BACKEND_URLS, getAuthHeaders } from "../../../config/api";
 import { useAuth } from "react-oidc-context";
@@ -59,11 +58,11 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { minusIcon, plusIcon, caretDownIcon, caretUpIcon, courseCard } =
-    ShowFilteredCoursesClasses;
+  const { courseCard } = ShowFilteredCoursesClasses;
 
   const [editingCredits, setEditingCredits] = useState<string | null>(null);
   const [noCoursesFound, setNoCoursesFound] = useState<boolean>(false);
+  const [searchFailed, setSearchFailed] = useState<boolean>(false);
 
   const handleCourseCardClick = (event: React.MouseEvent, course: Course) => {
     toggleCourseDropdown(`${course.code}|${course.name}`);
@@ -209,7 +208,14 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   };
 
   useEffect(() => {
-    if (debouncedSearchTerm === "") return;
+    if (debouncedSearchTerm.trim() === "") {
+      setFilteredCourses([]);
+      setNoCoursesFound(false);
+      setSearchFailed(false);
+      return;
+    }
+    // Ignore responses from searches that a newer keystroke has replaced
+    let stale = false;
     const fetchData = async () => {
       try {
         const response = await axios.post(API_URLS.GET_COURSES, {
@@ -219,6 +225,8 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
           term,
           year
         });
+        if (stale) return;
+        setSearchFailed(false);
         if (response.data.length > 0) {
           setNoCoursesFound(false);
           setFilteredCourses(response.data.map((course: Course) => ({
@@ -231,11 +239,17 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
           setFilteredCourses([]);
         }
       } catch (error) {
-        // Data fetch failed silently
+        if (stale) return;
+        setSearchFailed(true);
+        setNoCoursesFound(false);
+        setFilteredCourses([]);
       }
     };
     fetchData();
     setOpenCourseCode(null);
+    return () => {
+      stale = true;
+    };
   }, [searchTrigger, selectedValue]);
 
   const handleCreditsChange = (courseCode: string, courseName: string, newCredits: number) => {
@@ -275,9 +289,6 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                 selectedCourse.code === firstCourse.code &&
                 selectedCourse.name === firstCourse.name
             );
-            const isCourseAnimated =
-              courseAnimation[`${firstCourse.code}|${firstCourse.name}`] ||
-              false;
             const isOpen = openCourseCode?.includes(
               `${firstCourse.code}|${firstCourse.name}`
             );
@@ -295,7 +306,7 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                       className="cursor-pointer"
                       onClick={(e) => handleCourseCardClick(e, firstCourse)}
                     >
-                      <div className="flex flex-row text-white items-center justify-evenly w-full h-6 p-1 m-0">
+                      <div className="flex flex-row text-black font-semibold items-center justify-between w-full h-6 p-1 m-0">
                         {firstCourse.termInd !== " " &&
                         firstCourse.termInd !== "C" ? (
                           <>
@@ -309,7 +320,7 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                             {firstCourse.code.replace(/([A-Z]+)/g, "$1 ")}
                           </div>
                         )}
-                        <div className="flex items-center text-sm font-normal text-gray-300 mr-2 h-5 mb-[0.3rem] whitespace-nowrap overflow-hidden text-overflow-ellipsis">
+                        <div className="flex items-center text-sm font-normal text-gray-500 mr-2 h-5 mb-[0.3rem] whitespace-nowrap overflow-hidden text-overflow-ellipsis">
                           Credits:{" "}
                           {(firstCourse.creditsEditable || editingCredits === `${firstCourse.code}|${firstCourse.name}`) ? (
                             editingCredits === `${firstCourse.code}|${firstCourse.name}` ? (
@@ -318,10 +329,10 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                                 min="0"
                                 className="credits-input ml-1"
                                 style={{
-                                  backgroundColor: '#292929',
-                                  color: 'white',
+                                  backgroundColor: 'transparent',
+                                  color: 'var(--csu-ink)',
                                   outline: 'none',
-                                  borderBottom: '1px solid #ffffff',
+                                  borderBottom: '1px solid var(--csu-blue)',
                                   width: '3ch',
                                 }}
                                 onClick={(e) => e.stopPropagation()}
@@ -354,84 +365,67 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                             firstCourse.sections[0].credits
                           )}
                         </div>
-                        <div className="mx-1 h-9">
-                          {isCourseSelected ? (
-                            <PiMinusBold
-                              className={`${minusIcon}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCourseSelected(firstCourse);
-                              }}
-                              data-tooltip-id="remove-course-tooltip"
-                              data-tooltip-content="Remove all sections"
-                            />
-                          ) : (
-                            <PiPlusBold
-                              className={`${plusIcon}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCourseSelected(firstCourse);
-                              }}
-                              data-tooltip-id="add-course-tooltip"
-                              data-tooltip-content="Add all sections"
-                            />
-                          )}
-                        </div>
-                        <div className="mx-1 h-9">
-                          {!isCourseSelected && (
-                            <PiVideoCameraSlashBold
-                              className={`${plusIcon}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleNonOnlineSections(firstCourse);
-                              }}
-                              data-tooltip-id="non-online-tooltip"
-                              data-tooltip-content="Add only in-person sections"
-                            />
-                          )}
-                        </div>
-                        <div className="mx-1 h-9">
-                          {isOpen ? (
-                            <PiCaretUpBold
-                              className={`${caretUpIcon} ${
-                                isCourseAnimated
-                                  ? "opacity-100 transition-opacity duration-300"
-                                  : ""
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCourseDropdown(
-                                  `${firstCourse.code}|${firstCourse.name}`
-                                );
-                              }}
-                            />
-                          ) : (
-                            <PiCaretDownBold
-                              className={`${caretDownIcon} ${
-                                isCourseAnimated
-                                  ? "opacity-100 transition-opacity duration-100"
-                                  : ""
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleCourseDropdown(
-                                  `${firstCourse.code}|${firstCourse.name}`
-                                );
-                              }}
-                            />
-                          )}
-                        </div>
                       </div>
-                      <div className="text-sm font-normal text-gray-300 mx-1 line-clamp-2 overflow-ellipsis overflow-hidden">
+                      <div className="text-sm font-light text-gray-600 mx-1 line-clamp-2 overflow-ellipsis overflow-hidden">
                         {firstCourse.name}
+                      </div>
+                      <div className="course-actions">
+                        <button
+                          type="button"
+                          className={`course-action${
+                            isCourseSelected ? " remove" : " primary"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCourseSelected(firstCourse);
+                          }}
+                          title={
+                            isCourseSelected
+                              ? "Remove this course from your schedule"
+                              : "Add this course with all of its sections"
+                          }
+                        >
+                          {isCourseSelected ? <PiMinusBold /> : <PiPlusBold />}
+                          {isCourseSelected ? "Remove" : "Add"}
+                        </button>
+                        {!isCourseSelected && (
+                          <button
+                            type="button"
+                            className="course-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleNonOnlineSections(firstCourse);
+                            }}
+                            title="Add this course, leaving out online sections"
+                          >
+                            <PiVideoCameraSlashBold />
+                            In-person only
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="course-action sections"
+                          aria-expanded={!!isOpen}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCourseDropdown(
+                              `${firstCourse.code}|${firstCourse.name}`
+                            );
+                          }}
+                        >
+                          {firstCourse.sections.length} section
+                          {firstCourse.sections.length === 1 ? "" : "s"}
+                          {isOpen ? <PiCaretUpBold /> : <PiCaretDownBold />}
+                        </button>
                       </div>
                     </div>
                     {isOpen && (
                       <div>
-                        <div className={`mt-2 mb-0 mx-1 text-gray-200 `}>
+                        <div className={`mt-2 mb-0 mx-1 text-sm text-gray-700 `}>
                           <hr
                             style={{
-                              border: "1px solid #ffffff",
+                              border: "none",
+                              borderTop: "2px solid var(--csu-line)",
                               marginBottom: "4px",
                             }}
                           />
@@ -464,14 +458,26 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
             );
           })
         ) : (
-          noCoursesFound && (
-            <div className="text-gray-300 fade-text-in">No courses found.</div>
-          )
+          <div className="search-status fade-text-in">
+            {searchFailed ? (
+              <>
+                <strong>Search is unavailable right now.</strong>
+                <span>Check your connection and try again.</span>
+              </>
+            ) : noCoursesFound ? (
+              <>
+                <strong>No courses match “{debouncedSearchTerm}”.</strong>
+                <span>Try a course code like COP 3502, a title keyword, or a different term.</span>
+              </>
+            ) : debouncedSearchTerm.trim() === "" ? (
+              <>
+                <strong>Find your courses</strong>
+                <span>Search by course code (COP 3502), title (calculus), or instructor.</span>
+              </>
+            ) : null}
+          </div>
         )}
       </InfiniteScroll>
-      <Tooltip id="non-online-tooltip" place="top" style={{ zIndex: 1000 }} />
-      <Tooltip id="add-course-tooltip" place="top" style={{ zIndex: 1000 }} />
-      <Tooltip id="remove-course-tooltip" place="top" style={{ zIndex: 1000 }} />
     </div>
   );
 };

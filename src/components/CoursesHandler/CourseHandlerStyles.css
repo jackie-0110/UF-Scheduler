@@ -1,13 +1,14 @@
-@media (max-width: 1000px) {
-    .course-handler {
-        height: 80vh !important;
-        padding: 2rem;
-    }
+.course-handler {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: var(--pane-h);
+  padding: 1rem;
+  background-color: var(--csu-surface);
 }
 
-@media (min-width: 1001px) {
-    .course-handler {
-        height: calc(100vh - 43px) !important;
-        padding: 1rem;
-    }
+@media (max-width: 1000px) {
+  .course-handler {
+    padding: 0.75rem;
+  }
 }

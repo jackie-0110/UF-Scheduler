@@ -2,7 +2,6 @@ import React from "react";
 import { Course, Section, websiteURL } from "../CourseTypes";
 import { courseUIClasses } from "../CourseUIClasses";
 import { BiSolidLockOpen, BiSolidLockAlt } from "react-icons/bi";
-import { DropdownClasses } from "./DropdownClasses";
 
 interface CourseDropdownProps {
   course: Course;
@@ -25,8 +24,6 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
   setSelectedCourses,
 }) => {
   const { listItem, content } = courseUIClasses;
-
-  const { icons, minusicons } = DropdownClasses;
 
   const waitListAvailable = (section: Section) => {
     if (section.waitList.total === section.waitList.cap) {
@@ -111,17 +108,17 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
   };  
 
   const getRatingColor = (rating: number | null): string => {
-    if (rating === null) return "text-gray-200"; // Default
-    if (rating <= 2) return "text-red-400"; // Red
-    if (rating < 4) return "text-yellow-400"; // Yellow
-    return "text-green-400"; // Green
+    if (rating === null) return "text-gray-700"; // Default
+    if (rating <= 2) return "text-red-600"; // Red
+    if (rating < 4) return "text-amber-600"; // Yellow
+    return "text-green-600"; // Green
   };
 
   const getDifficultyColor = (difficulty: number | null): string => {
-    if (difficulty === null) return "text-gray-200"; // Default
-    if (difficulty <= 2) return "text-green-400"; // Green
-    if (difficulty < 4) return "text-yellow-400"; // Yellow
-    return "text-red-400"; // Red
+    if (difficulty === null) return "text-gray-700"; // Default
+    if (difficulty <= 2) return "text-green-600"; // Green
+    if (difficulty < 4) return "text-amber-600"; // Yellow
+    return "text-red-600"; // Red
   };
 
   const renderSectionInformation = (section: Section) => {
@@ -129,7 +126,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
       <div>
         {/* Star Icon based on section selected status */}
 
-        <div className="text-gray-200">
+        <div className="text-gray-700">
           {section.instructors.length > 1 ? (
             <strong>Instructors: </strong>
           ) : (
@@ -138,7 +135,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
           {section.instructors.map((instructor, index) => (
             <div
               key={index}
-              className="text-gray-200 flex justify-between"
+              className="text-gray-700 flex justify-between"
             >
               <div className="instructor-name ml-2 flex-1">
                 {instructor.name}
@@ -178,7 +175,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
         </div>
 
         {/* Meeting Times */}
-        <div className="text-gray-200">
+        <div className="text-gray-700">
           <strong>Meeting Times:</strong>{" "}
           {section.meetTimes.length > 0 ? (
             section.meetTimes.map((meetingTime) => (
@@ -188,7 +185,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                   meetingTime.meetTimeBegin +
                   meetingTime.meetTimeEnd
                 }
-                className={`ml-2 text-gray-200`}
+                className={`ml-2 text-gray-700`}
               >
                 <strong>{meetingTime.meetDays.join(", ")}: </strong> &nbsp;{" "}
                 {convertTo12HourFormat(meetingTime.meetTimeBegin)} -{" "}
@@ -197,7 +194,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
               </div>
             ))
           ) : (
-            <span className={`${content} text-gray-200`}>
+            <span className={`${content} text-gray-700`}>
               N/A
             </span>
           )}
@@ -210,7 +207,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
 
   return (
     <div
-      className={`bg-[#292929] rounded-lg space-y-2 text-[15px]`}
+      className={`space-y-2 text-sm`}
     >
       <div className="list-none">
         {course.sections
@@ -218,37 +215,48 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
           .map((section, index) => (
             <li
               key={index}
-              className="my-2 rounded-sm bg-[#212121] border-gray-400"
+              className="my-2 rounded-lg bg-neutral-100 border border-neutral-200"
             >
               <div className="space-y-2 p-2">
-                <div className="flex justify-between items-center">
-                  <div className="font-bold text-gray-200 flex items-center">
+                <div className="flex flex-wrap gap-2 justify-between items-center">
+                  <div className="font-bold text-gray-700 flex items-center">
                     Class # {section.classNumber} -{" "}
                     {!section.waitList.total && section.waitList.cap > 0 ? (
-                      <span className="text-green-400 ml-1">Open Seats</span>
+                      <span className="text-green-600 ml-1">Open Seats</span>
                     ) : !section.waitList.total && !section.waitList.cap ? (
-                      <span className="text-red-400 ml-1">Seats Unknown</span>
+                      <span className="text-red-600 ml-1">Seats Unknown</span>
                     ) : (
                       section.waitList.total &&
                       section.waitList.cap && (
-                        <span className="text-blue-400 ml-1">
+                        <span className="text-accent-1 ml-1">
                           Wait List: {waitListAvailable(section)}
                         </span>
                       )
                     )}
                   </div>
                   {/* Star Icon based on section selected status */}
-                  {isSectionSelected(section) ? (
-                    <BiSolidLockAlt
-                      className={`${minusicons}`}
-                      onClick={() => toggleSectionSelected(section)}
-                    />
-                  ) : (
-                    <BiSolidLockOpen
-                      className={`${icons}`}
-                      onClick={() => toggleSectionSelected(section)}
-                    />
-                  )}
+                  <button
+                    type="button"
+                    className={`course-action${
+                      isSectionSelected(section) ? " active" : ""
+                    }`}
+                    aria-pressed={isSectionSelected(section)}
+                    onClick={() => toggleSectionSelected(section)}
+                    title={
+                      isSectionSelected(section)
+                        ? "Go back to considering every section"
+                        : "Build schedules with only this section of the course"
+                    }
+                  >
+                    {isSectionSelected(section) ? (
+                      <BiSolidLockAlt />
+                    ) : (
+                      <BiSolidLockOpen />
+                    )}
+                    {isSectionSelected(section)
+                      ? "Using this section"
+                      : "Use only this section"}
+                  </button>
                 </div>
                 {renderSectionInformation(section)}
               </div>
@@ -256,7 +264,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
           ))}
         {course.sections.length === 0 && (
           <div
-            className={`${listItem} ${content} text-gray-200`}
+            className={`${listItem} ${content} text-gray-700`}
           >
             No sections found.
           </div>

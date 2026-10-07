@@ -1,19 +1,17 @@
 import React from "react";
 import { Course, Section } from "../CourseUI/CourseTypes";
 import ColorHash from "color-hash";
-import { PiTrashBold } from "react-icons/pi";
+import { IoClose } from "react-icons/io5";
 import "./LikedSelectedStyles.css";
 
 interface LikedSelectedCoursesProps {
   selectedCourses: Course[];
   setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   setLoaded: React.Dispatch<React.SetStateAction<boolean>>;
-  windowWidth: number;
   customAppointments: any[];
   setCustomAppointments: React.Dispatch<React.SetStateAction<any[]>>;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
   setDebouncedSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  searchTrigger: boolean;
   setSearchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -43,12 +41,10 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
   selectedCourses,
   setSelectedCourses,
   setLoaded,
-  windowWidth,
   customAppointments,
   setCustomAppointments,
   setSearchTerm,
   setDebouncedSearchTerm,
-  searchTrigger,
   setSearchTrigger,
 }) => {
   const getCourseBackgroundColor = (course: Course) => {
@@ -66,7 +62,7 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
     const searchQuery = course.code;
     setSearchTerm(searchQuery);
     setDebouncedSearchTerm(searchQuery);
-    setSearchTrigger(!searchTrigger); // Toggle to trigger the search
+    setSearchTrigger((prev) => !prev); // Toggle to trigger the search
   };
 
   const handleRemoveCourse = (e: React.MouseEvent, course: Course) => {
@@ -81,11 +77,6 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
     setLoaded(true);
   };
 
-  const handleAppointmentBadgeClick = (appointment: any) => {
-    // For appointments, we'll keep the current behavior of showing details (do nothing for now)
-    // Or you could populate search if needed
-  };
-
   const handleRemoveAppointment = (e: React.MouseEvent, appointment: any) => {
     e.stopPropagation(); // Prevent triggering the parent onClick
     setCustomAppointments((prevAppointments) =>
@@ -96,167 +87,92 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
     setLoaded(true);
   };
 
-  // Function to chunk the selected courses into pairs
-  const chunkArray = (array: Course[], chunkSize: number) => {
-    const chunkedArray = [];
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunkedArray.push(array.slice(i, i + chunkSize));
-    }
-    return chunkedArray;
-  };
-
-  const appointmentChunkArray = (array: any[], chunkSize: number) => {
-    const chunkedArray = [];
-    for (let i = 0; i < array.length; i += chunkSize) {
-      chunkedArray.push(array.slice(i, i + chunkSize));
-    }
-    return chunkedArray;
-  };
-
-  const selectedCoursesChunks = chunkArray(selectedCourses, 1);
-  const appointmentChunks = appointmentChunkArray(customAppointments, 1);
+  if (selectedCourses.length === 0 && customAppointments.length === 0) {
+    return null;
+  }
 
   return (
-    <>
-      <div className="mt-4 space-y-2 w-full flex flex-col">
-        <div>
-          <div className="text-white font-bold w-full flex justify-center items-center">
-            Courses
+    <div className="selected-chips" aria-label="Selected courses and events">
+      {selectedCourses.map((course: Course) => {
+        const selectedSection = getSelectedSection(course);
+        const color = getHashedColor(course);
+        const code = course.code.replace(/([A-Z]+)/g, "$1 ");
+        const details = [
+          course.name,
+          course.inPerson ? "in-person sections only" : "",
+          selectedSection ? `class # ${selectedSection.classNumber}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <div
+            key={`${course.code}|${course.name}`}
+            className="course-chip fade-in"
+            style={{
+              ...getCourseBackgroundColor(course),
+              color: getContrastYIQ(color),
+            }}
+            title={details}
+          >
+            <button
+              type="button"
+              className="course-chip-label"
+              onClick={() => handleBadgeClick(course)}
+            >
+              <strong>
+                {code}
+                {course.termInd !== " " && course.termInd !== "C"
+                  ? `- ${course.termInd}`
+                  : ""}
+              </strong>
+              <span>
+                {course.sections[0].credits} cr
+                {selectedSection ? ` · #${selectedSection.classNumber}` : ""}
+                {course.inPerson ? " · in-person" : ""}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="course-chip-remove"
+              onClick={(e) => handleRemoveCourse(e, course)}
+              aria-label={`Remove ${code}`}
+            >
+              <IoClose size={14} />
+            </button>
           </div>
-          <hr className="mx-1" />
+        );
+      })}
+      {customAppointments.map((appointment: any, index: number) => (
+        <div
+          key={`event-${index}`}
+          className="course-chip fade-in"
+          style={{
+            backgroundColor: appointment.color,
+            color: getContrastYIQ(appointment.color),
+          }}
+          title="Recurring event"
+        >
+          <span className="course-chip-label">
+            <strong>{appointment.courseName}</strong>
+            <span>
+              {appointment.meetTimes
+                .map((meetTime: any) => meetTime.meetDays.join(""))
+                .join(", ")}{" "}
+              {appointment.meetTimes[0].meetTimeBegin.replace(/^0/, "")}–
+              {appointment.meetTimes[0].meetTimeEnd.replace(/^0/, "")}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="course-chip-remove"
+            onClick={(e) => handleRemoveAppointment(e, appointment)}
+            aria-label={`Remove ${appointment.courseName}`}
+          >
+            <IoClose size={14} />
+          </button>
         </div>
-
-        {selectedCoursesChunks.length > 0 ? (
-          selectedCoursesChunks.map(
-            (courseChunk: Course[], chunkIndex: number) => (
-              <div key={chunkIndex} className="flex mx-3">
-                {courseChunk.map((course: Course, index: number) => {
-                  const selectedSection = getSelectedSection(course);
-                  return (
-                    <div
-                      id="badge"
-                      key={index}
-                      className={`flex-1 p-[0.6rem] rounded-md mb-2 text-${getContrastYIQ(getHashedColor(course))} cursor-pointer w-full h-full overflow-hidden fade-in relative`}
-                      style={getCourseBackgroundColor(course)}
-                      onClick={() => handleBadgeClick(course)}
-                    >
-                      {/* Display course code, credits, and class number */}
-                      <div className="flex justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between">
-                            {course.termInd !== " " &&
-                            course.termInd !== "C" ? (
-                              <strong className="block truncate">
-                                {course.code.replace(/([A-Z]+)/g, "$1 ")} -{" "}
-                                {course.termInd}
-                              </strong>
-                            ) : (
-                              <strong className="block truncate">
-                                {course.code.replace(/([A-Z]+)/g, "$1 ")}
-                              </strong>
-                            )}
-                            <span className="mt-[0.12rem] font-bold text-sm">
-                              {course.sections[0].credits}
-                            </span>
-                          </div>
-                          <div className="text-sm text-ellipsis">
-                            {course.name}{" "}
-                            {course.inPerson ? "(in-person)" : ""}
-                            {selectedSection
-                              ? `| Class # ${selectedSection.classNumber}`
-                                  : ""}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Trash button in bottom-right */}
-                      <button
-                        onClick={(e) => handleRemoveCourse(e, course)}
-                        className="absolute bottom-2 right-0.5 p-1 hover:opacity-80 transition-opacity"
-                        style={{ color: "#A30000" }}
-                        aria-label="Remove course"
-                      >
-                        <PiTrashBold size={14} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )
-          )
-        ) : (
-          <div className="text-white font-bold w-full flex justify-center items-center">
-            No courses
-          </div>
-        )}
-
-        <div>
-          <div className="text-white font-bold w-full flex justify-center items-center text-center">
-            Recurring Events
-          </div>
-          <hr className="mx-1" />
-        </div>
-
-        {appointmentChunks.length > 0 ? (
-          appointmentChunks.map(
-            (appointmentChunk: any[], chunkIndex: number) => (
-              <div key={chunkIndex} className="flex mx-3">
-                {appointmentChunk.map((appointment: any, index: number) => (
-                  <div
-                    id="badge"
-                    key={index}
-                    className={`flex-1 p-[0.6rem] rounded-md mb-2 text-${getContrastYIQ(appointment.color)} cursor-pointer w-full h-full overflow-hidden fade-in relative`}
-                    style={{ backgroundColor: appointment.color }}
-                    onClick={() => handleAppointmentBadgeClick(appointment)}
-                  >
-                    {/* Display course code and credits */}
-                    <div className="flex justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between">
-                          <strong className="block truncate">
-                            {appointment.courseName}
-                          </strong>
-                          <div>
-                            <strong className="block truncate text-sm mt-[0.12rem]">
-                              {appointment.meetTimes
-                                .map((meetTime: any) => meetTime.meetDays)
-                                .join(", ")}
-                            </strong>
-                          </div>
-                        </div>
-                        <div className="text-sm">
-                          {appointment.meetTimes[0].meetTimeBegin.replace(
-                            /^0/,
-                            ""
-                          )}{" "}
-                          -{" "}
-                          {appointment.meetTimes[0].meetTimeEnd.replace(
-                            /^0/,
-                            ""
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Trash button in bottom-right */}
-                    <button
-                      onClick={(e) => handleRemoveAppointment(e, appointment)}
-                      className="absolute bottom-1 right-1 p-1 hover:opacity-80 transition-opacity"
-                      style={{ color: getContrastYIQ(appointment.color) }}
-                      aria-label="Remove appointment"
-                    >
-                      <PiTrashBold size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )
-          )
-        ) : (
-          <div className="text-white font-bold w-full flex justify-center items-center">
-            No events
-          </div>
-        )}
-      </div>
-    </>
+      ))}
+    </div>
   );
 };
 export default LikedSelectedCourses;

@@ -4,13 +4,13 @@ export const ShowFilteredCoursesClasses = {
   input:
     "w-96 px-2 py-2 text-black bg-gray-200 rounded-md placeholder-gray-500 transition-colors duration-500",
   minusIcon:
-    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-400 hover:opacity-60",
+    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-500 hover:text-accent-1",
   plusIcon:
-    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-400 hover:opacity-60",
+    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-500 hover:text-accent-1",
   caretDownIcon:
-    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-400 hover:opacity-60",
+    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-500 hover:text-accent-1",
   caretUpIcon:
-    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-400 hover:opacity-60",
+    "cursor-pointer mr-1 mt-2 text-[1.0rem] text-gray-500 hover:text-accent-1",
   courseCard:
-    "bg-[#292929] rounded-sm p-4 my-1 w-[100%] shadow-md transition-shadow duration-300",
+    "bg-white rounded-xl card-shadow py-3 px-4 my-1.5 w-[100%]",
 };
