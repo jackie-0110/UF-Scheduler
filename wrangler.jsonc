@@ -1,0 +1,9 @@
+{
+  "name": "uf-scheduler",
+  "compatibility_date": "2025-04-01",
+  "assets": {
+    "directory": "./build",
+    // Serve index.html for app routes like /about and /privacy
+    "not_found_handling": "single-page-application"
+  }
+}
