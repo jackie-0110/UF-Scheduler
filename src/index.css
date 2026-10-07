@@ -9,12 +9,63 @@
   padding: 0;
 }
 
+/* UF CSU theme tokens (mirrors csu-frontpage) */
+:root {
+  --csu-blue: #0f44cd;
+  --csu-blue-tint: #dbe5ff;
+  --csu-orange: #fa4618;
+  --csu-ink: #000000;
+  --csu-muted: #6b7280;
+  --csu-surface: #ffffff;
+  --csu-subtle: #f5f5f5;
+  --csu-line: #e5e5e5;
+  --csu-shadow: 0 0 6px #aaa;
+  --header-h: 64px;
+  /* header + mobile tab row */
+  --header-stack-h: var(--header-h);
+  --bottom-bar-h: 0px;
+  /* height available to the courses pane and the view pane */
+  --pane-h: calc(100vh - var(--header-h));
+  /* share of the width given to the courses pane on wide screens */
+  --courses-w: 40%;
+}
+
+@media (max-width: 1000px) {
+  :root {
+    --header-h: 56px;
+    --header-stack-h: calc(var(--header-h) + 41px);
+    --pane-h: calc(100vh - var(--header-stack-h));
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
-  background-color: rgb(0, 0, 0);
+  background-color: var(--csu-surface);
+  color: var(--csu-ink);
+  font-family: "Sora", sans-serif;
   height: 100vh;
   width: 100vw;
+}
+
+.site-footer {
+  position: fixed;
+  bottom: calc(4px + var(--bottom-bar-h));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 3px 12px;
+  border-radius: 9999px;
+  background-color: #ffffffe6;
+  color: #4b5563;
+  font-size: 0.75rem;
+  font-weight: 300;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.card-shadow {
+  box-shadow: var(--csu-shadow);
 }
 
 html, body {
@@ -275,7 +326,7 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-500;
+  @apply bg-neutral-300 rounded-full;
 }
 
 body::-webkit-scrollbar-thumb {

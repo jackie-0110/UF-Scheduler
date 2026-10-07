@@ -7,17 +7,15 @@ module.exports = {
   darkMode: 'class', // or 'media' or boolean
   theme: {
     extend: {
+      fontFamily: {
+        display: ['Sora', 'sans-serif'],
+        body: ['Sora', 'sans-serif'],
+      },
       colors: {
-        gray: {
-          900: '#202225',
-          800: '#2f3136',
-          700: '#36393f',
-          600: '#4f545c',
-          400: '#d4d7dc',
-          300: '#e3e5e8',
-          200: '#ebedef',
-          100: '#f2f3f5',
-        },
+        // UF CSU brand palette (mirrors csu-frontpage/tailwind.config.js)
+        'accent-1': '#0f44cd',
+        'accent-2': '#FA4618',
+        url: '#4A82EA',
       },
       keyframes: {
         'zoom-in': {
