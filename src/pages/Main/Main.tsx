@@ -29,7 +29,7 @@ const Main = () => {
     }
   });
 
-  // A saved term the API no longer serves (a past semester) falls back to the newest one
+  // A saved term the API no longer serves (a past semester) falls back to the default
   const initialTermValue = (() => {
     const stored = localStorage.getItem("selectedTermValue");
     const value = isKnownTerm(stored) ? stored : DEFAULT_TERM;

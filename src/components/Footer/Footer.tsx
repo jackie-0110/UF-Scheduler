@@ -50,7 +50,7 @@ const Footer = () => {
       <p>
         {/* <span id="lastUpdated">{displayLastUpdatedTime()}</span> */}
         {/* {" | By "} */}
-        {"Updated to Spring 2027 | "}
+        {"Updated to Fall 2026 | "}
         <a
           href="/privacy"
           style={{ color: "inherit", textDecoration: "underline" }}
