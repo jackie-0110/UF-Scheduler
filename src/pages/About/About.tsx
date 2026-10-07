@@ -1,29 +1,25 @@
 import React from "react";
 import LinkedInProfileBadge from "react-linkedin-profile-badge";
 import Footer from "../../components/Footer/Footer";
+import "../../components/Header/HeaderStyles.css";
 import "./AboutStyles.css";
 
 const AboutPage: React.FC = () => {
   return (
     <>
-      <header className="header flex gap-x-5 justify-end">
-        <div className="mr-2">
-          <a href="/">
-            <span className="font-semibold text-blue-500">UF</span>
-            <span className="font-semibold text-orange-500">
-              Scheduler
-            </span>
-          </a>
-        </div>
+      <header className="header page-header">
+        <a href="/" className="brand">
+          <img src="/csu_logo.svg" alt="UF CSU" className="brand-logo" />
+          <span className="title">UF Scheduler</span>
+        </a>
       </header>
       <div
-        className="animated-background"
+        className="static-page"
         style={{ minHeight: "100vh", padding: "50px" }}
       >
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
           <h1
             style={{
-              color: "white",
               fontSize: "2.5em",
               marginBottom: "10px",
               marginTop: "40px",
@@ -33,7 +29,6 @@ const AboutPage: React.FC = () => {
           </h1>
           <p
             style={{
-              color: "white",
               lineHeight: "1.6",
               fontSize: "1.2em",
               marginBottom: "20px",
@@ -43,7 +38,6 @@ const AboutPage: React.FC = () => {
           </p>
           <p
             style={{
-              color: "white",
               lineHeight: "1.6",
               fontSize: "1.2em",
               marginBottom: "20px",
@@ -53,7 +47,6 @@ const AboutPage: React.FC = () => {
           </p>
           <p
             style={{
-              color: "white",
               lineHeight: "1.6",
               fontSize: "1.2em",
               marginBottom: "20px",
@@ -64,7 +57,6 @@ const AboutPage: React.FC = () => {
           </p>
           <h2
             style={{
-              color: "white",
               fontSize: "1.75em",
               marginBottom: "10px",
               marginTop: "30px",
@@ -74,17 +66,15 @@ const AboutPage: React.FC = () => {
           </h2>
           <p
             style={{
-              color: "white",
               lineHeight: "1.6",
               fontSize: "1.2em",
               marginBottom: "20px",
             }}
           >
-            <a href="https://www.linkedin.com/in/danielurbonas/" target="_blank" rel="noreferrer" style={{ color: "white", textDecoration: "underline" }}>Daniel Urbonas</a> - AI chat assistant
+            <a href="https://www.linkedin.com/in/danielurbonas/" target="_blank" rel="noreferrer" className="text-accent-1 hover:underline">Daniel Urbonas</a> - AI chat assistant
           </p>
           <h2
             style={{
-              color: "white",
               fontSize: "1.75em",
               marginBottom: "10px",
               marginTop: "30px",
@@ -101,13 +91,14 @@ const AboutPage: React.FC = () => {
           >
             <a
               href="mailto: andy.chen@ufl.edu"
-              style={{ color: "white", lineHeight: "1.6", fontSize: "1.2em" }}
+              className="text-accent-1 hover:underline"
+              style={{ lineHeight: "1.6", fontSize: "1.2em" }}
             >
               andy.chen@ufl.edu
             </a>
             <LinkedInProfileBadge
               profileId="andy-chen67"
-              theme="dark"
+              theme="light"
               size="large"
               orientation="horizontal"
             />

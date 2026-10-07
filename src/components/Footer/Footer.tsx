@@ -45,15 +45,7 @@ const Footer = () => {
 
   return (
     <div
-      className="about text-white text-sm w-full"
-      style={{
-        position: "fixed",
-        bottom: "0px",
-        left: "50%",
-        transform: "translate(-50%, 0%)",
-        textAlign: "center",
-        zIndex: 1000,
-      }}
+      className="site-footer"
     >
       <p>
         {/* <span id="lastUpdated">{displayLastUpdatedTime()}</span> */}
