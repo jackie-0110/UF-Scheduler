@@ -4,6 +4,7 @@ import { IoClose } from "react-icons/io5";
 export type GridAppointment = {
   id: string;
   title: string;
+  courseName?: string;
   startDate: string;
   endDate: string;
   color: string;
@@ -145,7 +146,14 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
                       onClick={() => setOpenId(isOpen ? null : event.id)}
                       aria-expanded={isOpen}
                     >
-                      <strong>{event.title}</strong>
+                      <div className="week-grid-event-head">
+                        <strong>{event.title}</strong>
+                        {event.courseName && (
+                          <span className="week-grid-event-name">
+                            {event.courseName}
+                          </span>
+                        )}
+                      </div>
                       <span>
                         {formatTime(event.start)} – {formatTime(event.end)}
                       </span>
@@ -172,6 +180,11 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
                           <i style={{ backgroundColor: event.color }} />
                           {event.title}
                         </div>
+                        {event.courseName && (
+                          <div className="week-grid-popover-name">
+                            {event.courseName}
+                          </div>
+                        )}
                         <dl>
                           <dt>Time</dt>
                           <dd>

@@ -326,6 +326,17 @@
   text-overflow: ellipsis;
 }
 
+.week-grid-event-head {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+.week-grid-event-head strong {
+  flex-shrink: 0;
+}
+
 .week-grid-event span {
   font-size: 0.68rem;
   opacity: 0.9;
@@ -382,6 +393,11 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.week-grid-popover-name {
+  margin: -4px 0 8px 18px;
+  color: var(--csu-muted);
 }
 
 .week-grid-popover dl {
