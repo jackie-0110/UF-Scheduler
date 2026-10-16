@@ -128,6 +128,34 @@ const NO_FILTERS: ScheduleFilters = {
 
 const DAY_CODES = ["M", "T", "W", "R", "F"];
 const BATCH_SIZE = 20;
+// Sorting ranks every combination at once, so very large sets stay unsorted
+const SORT_LIMIT = 5_000_000;
+
+// Every schedule is one pick from each list. Combinations are numbered and
+// decoded on demand instead of being built up front, which used millions of
+// arrays (hundreds of MB) for a handful of courses with many sections.
+type Combinations = {
+  lists: Section[][];
+  count: number;
+  order: Uint32Array | null; // sorted position -> combination number
+};
+
+const makeCombinations = (lists: Section[][]): Combinations => ({
+  lists,
+  count: lists.reduce((product, list) => product * list.length, 1),
+  order: null,
+});
+
+const combinationAt = ({ lists, order }: Combinations, index: number) => {
+  let n = order ? order[index] : index;
+  const picks: Section[] = new Array(lists.length);
+  for (let k = lists.length - 1; k >= 0; k--) {
+    const list = lists[k];
+    picks[k] = list[n % list.length];
+    n = Math.floor(n / list.length);
+  }
+  return picks;
+};
 
 const timeToMinutes = (timeStr: string): number => {
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -331,30 +359,23 @@ const Calendar: React.FC<CalendarProps> = ({
     });
   };
 
-  // Step 2: Generate all possible combinations
-  const generateAllCombinations = (arrays: Section[][]) => {
-    arrays = [...arrays, ...customAppointments.map((item) => [item])];
-    return arrays.reduce<Section[][]>(
-      (acc, curr) =>
-        acc.flatMap((c: Section[]) =>
-          curr.map((n: Section) => ([] as Section[]).concat(c, [n]))
-        ),
-      [[]]
-    );
-  };
-
+  // Step 2: Every combination of one section per course, plus custom events
   const allSelectedSections = useMemo(
     () => getAllSelectedSections(),
     [selectedCourses]
   );
 
-  const [allCombinations, setAllCombinations] = useState<Section[][]>(() =>
-    generateAllCombinations(allSelectedSections)
-  );
+  const buildCombinations = () =>
+    makeCombinations([
+      ...allSelectedSections,
+      ...customAppointments.map((item) => [item]),
+    ]);
+
+  const [allCombinations, setAllCombinations] =
+    useState<Combinations>(buildCombinations);
 
   useEffect(() => {
-    const newCombinations = generateAllCombinations(allSelectedSections);
-    setAllCombinations(newCombinations);
+    setAllCombinations(buildCombinations());
   }, [allSelectedSections, customAppointments]);
 
   // Step 3: Create calendars
@@ -364,9 +385,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
     while (
       generatedCalendars.length < numRequested &&
-      index < allCombinations.length
+      index < allCombinations.count
     ) {
-      const combination = allCombinations[index];
+      const combination = combinationAt(allCombinations, index);
       index++;
       if (!passesFilters(combination, filters)) continue;
 
@@ -440,7 +461,7 @@ const Calendar: React.FC<CalendarProps> = ({
     const { calendars, nextIndex } = createCalendars(0, BATCH_SIZE);
     setCurrentCalendars(calendars);
     setLastIndex(nextIndex);
-    setHasMoreItems(nextIndex < allCombinations.length);
+    setHasMoreItems(nextIndex < allCombinations.count);
     setPosition(0);
   }, [allCombinations, filters]);
 
@@ -448,7 +469,7 @@ const Calendar: React.FC<CalendarProps> = ({
     const { calendars, nextIndex } = createCalendars(lastIndex, BATCH_SIZE);
     setCurrentCalendars((prev) => [...prev, ...calendars]);
     setLastIndex(nextIndex);
-    setHasMoreItems(nextIndex < allCombinations.length);
+    setHasMoreItems(nextIndex < allCombinations.count);
   };
 
   // Step 4: The pager's list — the pinned schedule first, then every other option
@@ -521,63 +542,64 @@ const Calendar: React.FC<CalendarProps> = ({
       : "";
   };
 
-  const getTimes = (combination: any, key: string) => {
-    const times = [];
-    for (let section of combination) {
-      for (let time of section.meetTimes) {
-        times.push(timeToMinutes(time[key]));
+  const canSort = allCombinations.count <= SORT_LIMIT;
+
+  // Ranks combination numbers by a key built from each section's earliest
+  // start and latest end, without decoding the combinations themselves
+  const sortCombinations = (value: string) => {
+    const { lists, count } = allCombinations;
+    const stats = lists.map((list) =>
+      list.map((section) => {
+        let begin = Infinity;
+        let end = -Infinity;
+        for (const meetTime of section.meetTimes ?? []) {
+          begin = Math.min(begin, timeToMinutes(meetTime.meetTimeBegin));
+          end = Math.max(end, timeToMinutes(meetTime.meetTimeEnd));
+        }
+        return { begin, end };
+      })
+    );
+
+    const keys = new Float64Array(count);
+    for (let i = 0; i < count; i++) {
+      let n = i;
+      let begin = Infinity;
+      let end = -Infinity;
+      for (let k = lists.length - 1; k >= 0; k--) {
+        const length = lists[k].length;
+        const section = stats[k][n % length];
+        n = Math.floor(n / length);
+        begin = Math.min(begin, section.begin);
+        end = Math.max(end, section.end);
       }
+      const key =
+        value === "mostCompact" ? end - begin
+        : value === "earliestStart" ? begin
+        : value === "latestStart" ? -begin
+        : value === "earliestEnd" ? end
+        : -end;
+      // Combinations with no meeting times go last
+      keys[i] = Number.isFinite(key) ? key : Infinity;
     }
-    return times;
-  };
 
-  const getEarliestAndLatestTimes = (combination: any) => {
-    const startTimes = getTimes(combination, "meetTimeBegin");
-    const endTimes = getTimes(combination, "meetTimeEnd");
-    return [Math.min(...startTimes), Math.max(...endTimes)];
-  };
-
-  const sortCombinations = (selectedOption: any) => {
-    return [...allCombinations].sort((a, b) => {
-      if (selectedOption.value === "mostCompact") {
-        const [aStart, aEnd] = getEarliestAndLatestTimes(a);
-        const [bStart, bEnd] = getEarliestAndLatestTimes(b);
-        return aEnd - aStart - (bEnd - bStart);
-      } else {
-        const aTimes = getTimes(a, selectedOption.key);
-        const bTimes = getTimes(b, selectedOption.key);
-        const aValue = selectedOption.operation(...aTimes);
-        const bValue = selectedOption.operation(...bTimes);
-        return selectedOption.direction * (aValue - bValue);
-      }
-    });
+    const order = new Uint32Array(count);
+    for (let i = 0; i < count; i++) order[i] = i;
+    order.sort((a, b) => keys[a] - keys[b] || a - b);
+    return { ...allCombinations, order };
   };
 
   const handleSortChange = (value: string) => {
     setSortValue(value);
-    if (!value) return;
-    setIsLoadingSort(true); // Set loading state to true at the start
+    if (!value) {
+      setAllCombinations((prev) => ({ ...prev, order: null }));
+      return;
+    }
+    setIsLoadingSort(true);
 
+    // Let the spinner paint before the sort blocks the page
     setTimeout(() => {
-      const sortOptions: any = {
-        earliestStart: {
-          key: "meetTimeBegin",
-          operation: Math.min,
-          direction: 1,
-        },
-        latestStart: {
-          key: "meetTimeBegin",
-          operation: Math.min,
-          direction: -1,
-        },
-        earliestEnd: { key: "meetTimeEnd", operation: Math.max, direction: 1 },
-        latestEnd: { key: "meetTimeEnd", operation: Math.max, direction: -1 },
-      };
-
-      setAllCombinations(
-        sortCombinations({ ...sortOptions[value], value })
-      );
-      setIsLoadingSort(false); // Set loading state to false at the end
+      setAllCombinations(sortCombinations(value));
+      setIsLoadingSort(false);
     }, 0);
   };
 
@@ -717,6 +739,12 @@ const Calendar: React.FC<CalendarProps> = ({
               <select
                 value={sortValue}
                 onChange={(e) => handleSortChange(e.target.value)}
+                disabled={!canSort}
+                title={
+                  canSort
+                    ? undefined
+                    : "Too many combinations to sort. Pick a section for some courses first."
+                }
               >
                 <option value="">Default</option>
                 {sortOptions.map((option) => (
