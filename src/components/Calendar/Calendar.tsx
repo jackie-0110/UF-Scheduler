@@ -417,6 +417,8 @@ const Calendar: React.FC<CalendarProps> = ({
               id,
               classNumber,
               title,
+              // Custom appointments use their name as the title already
+              courseName: section.courseCode ? section.courseName : undefined,
               color,
               finalExam: section.finalExam,
               location: `${meetBuilding} ${meetRoom}`,
