@@ -9,7 +9,6 @@ import { AiOutlineMessage, AiOutlineCalendar } from "react-icons/ai";
 import { IoClose, IoSearch } from "react-icons/io5";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import Footer from "../../components/Footer/Footer";
-import MapBox from "../../components/MapBox/Map";
 import Chat from "../../components/Chat/LiveChat";
 import AIChat from "../../components/Chat/AIChat";
 import ModelPlan from "../../components/ModelPlan/ModelPlan";
@@ -388,11 +387,6 @@ const Main = () => {
                 year={year}
                 key={calendarResetKey}
               />
-            )}
-            {currentView === "map" && (
-              <div className="map-container">
-                <MapBox term={term} year={year} />
-              </div>
             )}
             {currentView === "plan" && <ModelPlan />}
           </div>
