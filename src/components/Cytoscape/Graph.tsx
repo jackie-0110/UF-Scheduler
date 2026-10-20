@@ -42,6 +42,7 @@ const Graph: React.FC<GraphProps> = ({
   const cyRef = useRef<cytoscape.Core | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const [loadedOnce, setLoadedOnce] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   //Renders graph after calendar is switched away from
   useEffect(() => {
@@ -51,9 +52,12 @@ const Graph: React.FC<GraphProps> = ({
   const handleLoading = async (callback: () => Promise<void>) => {
     try {
       setLoading(true);
+      setError(null);
       await callback();
-    } catch (error) {
-      // Error handled silently in production
+    } catch (err) {
+      setError(
+        "Couldn't load the prerequisite graph. The course server may be waking up or unreachable. Try again in a moment."
+      );
     } finally {
       setLoading(false);
     }
@@ -272,6 +276,21 @@ const Graph: React.FC<GraphProps> = ({
         <div className="department-select">
         <MajorSelect selectedMajor={selectedMajor} setSelectedMajor={setSelectedMajor} />
         </div>
+      {error && (
+        <div className="graph-message graph-error" role="alert">
+          {error}
+          <button className="graph-retry" onClick={() => handleLoading(generateAList)}>
+            Retry
+          </button>
+        </div>
+      )}
+      {!error && !loading && (!graphData || graphData.nodes.length === 0) && (
+        <div className="graph-message">
+          {selectedMajor
+            ? "No prerequisite relationships found for this department this term."
+            : "Select a department to see how its courses connect."}
+        </div>
+      )}
       <div ref={cyContainerRef} id="cytoscape-container"></div>
       <div className={`loader-container ${loading ? "show" : ""}`}>
         <ClipLoader color="#0f44cd" loading={loading} size={150} />

@@ -4,3 +4,25 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+.graph-message {
+  width: 90%;
+  margin: 24px auto;
+  text-align: center;
+  color: var(--csu-muted, #5b6478);
+  font-size: 14px;
+}
+
+.graph-error {
+  color: #b42318;
+}
+
+.graph-retry {
+  margin-left: 12px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
