@@ -7,7 +7,23 @@ import { API_URLS } from "../../config/api";
 import ClipLoader from "react-spinners/ClipLoader";
 import { Course } from "../CourseUI/CourseTypes";
 import axios from "axios";
+import CourseDetailPanel from "./CourseDetailPanel";
+import { usePrereqInfo, useCompletedCourses } from "./usePrereqData";
+import { baseCode, evaluateCourse, nodeIdToCode, primaryCode } from "./prereqs";
 import "./GraphStyles.css";
+
+type GraphFilter = "all" | "eligible" | "almost";
+const KLAY_LAYOUT = {
+  name: "klay",
+  padding: 20,
+  klay: {
+    direction: "RIGHT",
+    spacing: 80,
+    nodeLayering: "NETWORK_SIMPLEX",
+    edgeRouting: "ORTHOGONAL",
+  },
+} as any;
+const STATUS_CLASSES = "status-completed status-eligible status-almost status-locked status-unknown";
 
 interface GraphProps {
   setDebouncedSearchTerm: React.Dispatch<React.SetStateAction<string>>;
@@ -43,6 +59,10 @@ const Graph: React.FC<GraphProps> = ({
   const cleanupRef = useRef<(() => void) | null>(null);
   const [loadedOnce, setLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { info, variants, unlocks, error: prereqError } = usePrereqInfo(term, year);
+  const { completed, setCourseCompleted, clearCompleted } = useCompletedCourses(variants);
+  const [focusBase, setFocusBase] = useState<string | null>(null);
+  const [filter, setFilter] = useState<GraphFilter>("all");
 
   //Renders graph after calendar is switched away from
   useEffect(() => {
@@ -111,12 +131,25 @@ const Graph: React.FC<GraphProps> = ({
               height: "150px",
             },
           },
+          { selector: "node.status-completed", style: { "background-color": "#16a34a" } },
+          { selector: "node.status-almost", style: { "background-color": "#f59e0b", color: "#1f2937" } },
+          { selector: "node.status-locked", style: { "background-color": "#9ca3af" } },
           {
-            selector: "node.selected",
+            selector: "node.status-unknown",
             style: {
-              "background-color": "#FA4618",
+              "background-color": "#ffffff",
+              color: "#6b7280",
+              "border-width": 8,
+              "border-color": "#9ca3af",
+              "border-style": "dashed",
             },
           },
+          {
+            selector: "node.selected",
+            style: { "border-width": 16, "border-color": "#FA4618", "border-style": "solid" },
+          },
+          { selector: "node.focus", style: { "border-width": 16, "border-color": "#111827", "border-style": "solid" } },
+          { selector: ".hidden", style: { display: "none" } },
           {
             selector: "edge",
             style: {
@@ -129,17 +162,14 @@ const Graph: React.FC<GraphProps> = ({
               "curve-style": "bezier",
             },
           },
-        ],
-        layout: {
-          name: "klay",
-          padding: 20,
-          klay: {
-            direction: "RIGHT",
-            spacing: 80,
-            nodeLayering: "NETWORK_SIMPLEX",
-            edgeRouting: "ORTHOGONAL",
+          { selector: "edge.choice", style: { "line-style": "dashed", "line-dash-pattern": [24, 16] } },
+          { selector: "edge.soft", style: { "line-style": "dotted", "line-color": "#d5dcf0", "target-arrow-color": "#d5dcf0" } },
+          {
+            selector: "edge.coreq",
+            style: { "line-style": "dashed", "line-color": "#f6a38f", "target-arrow-color": "#f6a38f" },
           },
-        } as any,
+        ],
+        layout: KLAY_LAYOUT,
         minZoom: 0.1,
         maxZoom: 3,
       });
@@ -150,6 +180,7 @@ const Graph: React.FC<GraphProps> = ({
 
       cy.on("tap", "node", (event) => {
         const nodeId = event.target.id();
+        setFocusBase(nodeIdToCode(nodeId));
         setDebouncedSearchTerm(nodeId.replace("\n", ""));
         setSearchTerm(nodeId.replace("\n", ""));
         setSearchTrigger(prev => !prev);
@@ -251,6 +282,58 @@ const Graph: React.FC<GraphProps> = ({
     };
   };
 
+  // Color each course by whether the student can take it yet, and apply the view filter
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.batch(() => {
+      cy.nodes().forEach((node) => {
+        const base = nodeIdToCode(node.id());
+        node.removeClass(STATUS_CLASSES);
+        node.toggleClass("focus", base === focusBase);
+        if (!info) return;
+        const { status } = evaluateCourse(primaryCode(base, variants, info), info, completed, variants);
+        node.addClass(`status-${status}`);
+        const shown =
+          filter === "all" ||
+          base === focusBase ||
+          (filter === "eligible" && status === "eligible") ||
+          (filter === "almost" && status === "almost");
+        node.toggleClass("hidden", !shown);
+      });
+    });
+  }, [graphData, info, variants, completed, filter, focusBase]);
+
+  // Pack the remaining courses together when a filter hides most of the graph
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !info) return;
+    cy.elements().not(".hidden").layout({ ...KLAY_LAYOUT, fit: true }).run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, info]);
+
+  const focusCourse = (code: string) => {
+    const base = baseCode(code);
+    setFocusBase(base);
+    const cy = cyRef.current;
+    const node = cy?.getElementById(`${base.slice(0, 3)}\n${base.slice(3)}`);
+    if (cy && node && node.nonempty()) cy.animate({ center: { eles: node }, duration: 250 });
+  };
+
+  const searchCourse = (code: string) => {
+    setDebouncedSearchTerm(code);
+    setSearchTerm(code);
+    setSearchTrigger((prev) => !prev);
+  };
+
+  const focusCode = info && focusBase ? primaryCode(focusBase, variants, info) : null;
+  const panelOpen = focusCode !== null;
+
+  // The panel shares the row with the graph, so tell Cytoscape when its container changes size
+  useEffect(() => {
+    cyRef.current?.resize();
+  }, [panelOpen]);
+
   useEffect(() => {
     if (loadedOnce) {
       handleLoading(generateAList);
@@ -272,7 +355,7 @@ const Graph: React.FC<GraphProps> = ({
     });
   };
   return (
-    <div className="h-full">
+    <div className="graph-root">
         <div className="department-select">
         <MajorSelect selectedMajor={selectedMajor} setSelectedMajor={setSelectedMajor} />
         </div>
@@ -291,7 +374,67 @@ const Graph: React.FC<GraphProps> = ({
             : "Select a department to see how its courses connect."}
         </div>
       )}
-      <div ref={cyContainerRef} id="cytoscape-container"></div>
+      <div className="graph-toolbar">
+        <div className="graph-filters" role="group" aria-label="Filter courses">
+          {(
+            [
+              ["all", "All courses"],
+              ["eligible", "Can take now"],
+              ["almost", "One step away"],
+            ] as [GraphFilter, string][]
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              className={`graph-filter${filter === value ? " active" : ""}`}
+              onClick={() => setFilter(value)}
+              disabled={!info}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="graph-progress">
+          {completed.size > 0 ? (
+            <>
+              {new Set(Array.from(completed, baseCode)).size} completed
+              <button className="graph-link" onClick={clearCompleted}>
+                Clear
+              </button>
+            </>
+          ) : (
+            "Click a course and mark what you've finished to see what you can take."
+          )}
+        </div>
+      </div>
+      <div className="graph-legend" aria-label="Legend">
+        <span><i className="dot completed" />Completed</span>
+        <span><i className="dot eligible" />Can take now</span>
+        <span><i className="dot almost" />One step away</span>
+        <span><i className="dot locked" />Locked</span>
+        <span><i className="dot unknown" />Not offered this term</span>
+        <span><i className="line choice" />One of several</span>
+      </div>
+      {prereqError && (
+        <div className="graph-message graph-error" role="alert">
+          Couldn't load prerequisite details, so courses aren't color-coded.
+        </div>
+      )}
+      <div className="graph-stage">
+        <div ref={cyContainerRef} id="cytoscape-container"></div>
+        {info && focusCode && (
+          <CourseDetailPanel
+            code={focusCode}
+            info={info}
+            evaluation={evaluateCourse(focusCode, info, completed, variants)}
+            completed={completed}
+            unlocks={unlocks.get(baseCode(focusCode)) ?? []}
+            onToggleCompleted={(done) => setCourseCompleted(focusCode, done)}
+            onSelect={focusCourse}
+            onSearch={searchCourse}
+            onClose={() => setFocusBase(null)}
+          />
+        )}
+      </div>
       <div className={`loader-container ${loading ? "show" : ""}`}>
         <ClipLoader color="#0f44cd" loading={loading} size={150} />
       </div>

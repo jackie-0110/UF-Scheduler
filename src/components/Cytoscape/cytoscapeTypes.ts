@@ -5,6 +5,8 @@ export type NodeData = {
 export type EdgeData = {
 source: string;
 target: string;
+kind?: "required" | "choice" | "soft" | "coreq";
+group?: string | null;
 };
 
 export type Node = {
@@ -14,6 +16,7 @@ classes: string;
 
 export type Edge = {
 data: EdgeData;
+classes?: string;
 };
 
 export type GraphData = {
