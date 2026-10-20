@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { AiOutlineCalendar, AiOutlineSchedule } from "react-icons/ai";
 import { PiGraphFill } from "react-icons/pi";
 import { BiLogOut, BiLogIn } from "react-icons/bi";
-import { IoMapOutline } from "react-icons/io5";
 import { Course } from "../CourseUI/CourseTypes";
 import { useAuth } from "react-oidc-context";
 import { signOutRedirect } from "../../config/api";
