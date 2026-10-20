@@ -52,7 +52,6 @@ const Header: React.FC<HeaderProps> = ({
     { view: "calendar", label: "Scheduler", icon: <AiOutlineCalendar size={18} /> },
     { view: "graph", label: "Prerequisites", icon: <PiGraphFill size={18} /> },
     { view: "plan", label: "Model Plans", icon: <AiOutlineSchedule size={18} /> },
-    { view: "map", label: "Map", icon: <IoMapOutline size={18} /> },
   ];
   const isDesktop = windowWidth >= 1001;
 
