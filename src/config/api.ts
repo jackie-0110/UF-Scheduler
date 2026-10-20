@@ -66,6 +66,7 @@ export const signOutRedirect = () => {
 export const API_ENDPOINTS = {
   GET_COURSES: '/api/get_courses',
   GENERATE_A_LIST: '/generate_a_list',
+  GET_PREREQS: '/api/prereqs',
 } as const;
 
 /**
@@ -108,6 +109,7 @@ export const buildBackendUrl = (endpoint: string): string => {
 export const API_URLS = {
   GET_COURSES: buildApiUrl(API_ENDPOINTS.GET_COURSES),
   GENERATE_A_LIST: buildApiUrl(API_ENDPOINTS.GENERATE_A_LIST),
+  GET_PREREQS: buildApiUrl(API_ENDPOINTS.GET_PREREQS),
 } as const;
 
 /**
