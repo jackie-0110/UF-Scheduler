@@ -251,7 +251,7 @@ const Graph: React.FC<GraphProps> = ({
     if (loadedOnce) {
       handleLoading(generateAList);
     }
-  }, [selectedCourses, selectedMajor]);
+  }, [selectedCourses, selectedMajor, term, year]);
 
   const generateAList = async () => {
     await handleLoading(async () => {
