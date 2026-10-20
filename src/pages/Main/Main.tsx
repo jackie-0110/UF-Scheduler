@@ -132,7 +132,7 @@ const Main = () => {
             if (action.arguments.view === "ai") {
               setChatTab("ai");
               setIsChatOpen(true);
-            } else {
+            } else if (action.arguments.view !== "map") {
               showView(
                 action.arguments.view as "calendar" | "graph" | "map" | "plan"
               );
