@@ -99,16 +99,6 @@ const Header: React.FC<HeaderProps> = ({
             <span className="credits-label">Credits</span>
             <span className="credits-value">{totalCredits}</span>
           </div>
-          {windowWidth > 500 && (
-            <a
-              className="buyButton"
-              target="_blank"
-              href="https://www.buymeacoffee.com/ufscheduler"
-              rel="noreferrer"
-            >
-              Donate
-            </a>
-          )}
           <div className="auth-section">
             {auth.isAuthenticated ? (
               <>
