@@ -22,8 +22,8 @@ my plan" flow stay the same.
 ## Spike result
 A text-based PDF (the planner's own export) extracted in about 240 ms in headless Chromium, with
 lines reconstructed correctly (`COP 3502C   Programming Fundamentals 1   4`).
-Build size cost: about 136 KB main-bundle chunk growth for the loader, plus the 1 MB worker that
-loads only on use.
+Bundle cost was not measured. The worker is a separate 1 MB file, and a lazy `import()` keeps the
+library itself out of the main bundle.
 
 ## Unknowns and risks
 - **Real transcript layout.** I have not seen a ONE.UF unofficial transcript PDF. Multi-column
