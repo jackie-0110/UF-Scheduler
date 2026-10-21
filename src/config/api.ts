@@ -2,9 +2,8 @@
  * Centralized API Configuration
  *
  * There are TWO separate servers:
- * 1. API Server (api.ufscheduler.com) - handles course data and schedule generation
- * 2. Backend Server (api.ufscheduler.com) - handles metrics, chat, users, and AI assistant
- *    (previously backend.ufscheduler.com, now behind API Gateway)
+ * 1. API Server - course search, prerequisites and graphs; a Cloudflare Worker (see .env.production)
+ * 2. Backend Server - metrics, chat, users, and AI assistant (not set up yet)
  */
 
 import type { AuthContextProps } from "react-oidc-context";
