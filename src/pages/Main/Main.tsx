@@ -12,6 +12,7 @@ import Footer from "../../components/Footer/Footer";
 import Chat from "../../components/Chat/LiveChat";
 import AIChat from "../../components/Chat/AIChat";
 import ModelPlan from "../../components/ModelPlan/ModelPlan";
+import Planner from "../../components/Planner/Planner";
 import Graph from "../../components/Cytoscape/Graph";
 import { ChangeEvent } from "react";
 import { useAIActionStore } from "../../store/aiActionStore";
@@ -61,7 +62,7 @@ const Main = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTrigger, setSearchTrigger] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<
-    "calendar" | "graph" | "map" | "plan" | ""
+    "calendar" | "graph" | "map" | "plan" | "planner" | ""
   >("");
   const [hasBeenLoaded, setLoaded] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -89,7 +90,7 @@ const Main = () => {
   const [activeUsers, setActiveUsers] = useState<number>(0);
 
   const showView = useCallback(
-    (view: "calendar" | "graph" | "map" | "plan") => {
+    (view: "calendar" | "graph" | "map" | "plan" | "planner") => {
       setCurrentView(view);
       setMobilePane("view");
     },
@@ -133,7 +134,7 @@ const Main = () => {
               setIsChatOpen(true);
             } else if (action.arguments.view !== "map") {
               showView(
-                action.arguments.view as "calendar" | "graph" | "map" | "plan"
+                action.arguments.view as "calendar" | "graph" | "map" | "plan" | "planner"
               );
             }
             break;
@@ -278,12 +279,17 @@ const Main = () => {
     calendar: "Schedule",
     graph: "Prerequisites",
     plan: "Model Plans",
+    planner: "Planner",
     map: "Map",
     "": "Schedule",
   };
 
   return (
-    <div className={`sora-unique scheduler-app show-${mobilePane}`}>
+    <div
+      className={`sora-unique scheduler-app show-${mobilePane}${
+        currentView === "planner" ? " planner-active" : ""
+      }`}
+    >
       <div className={`chat-dock ${isChatOpen ? "open" : ""}`}>
         <div className="chat-dock-tabs" role="tablist">
           <button
@@ -389,6 +395,7 @@ const Main = () => {
               />
             )}
             {currentView === "plan" && <ModelPlan />}
+            {currentView === "planner" && <Planner />}
           </div>
         </div>
       </div>

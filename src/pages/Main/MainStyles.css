@@ -291,3 +291,12 @@
   margin-right: 8px;
   display: inline-block;
 }
+
+/* The planner has its own course catalog, so it uses the full width */
+.planner-active .courses-pane {
+  display: none;
+}
+
+.planner-active .view-pane {
+  border-left: none;
+}

@@ -1,6 +1,7 @@
 import "./HeaderStyles.css";
 import { useEffect, useState } from "react";
 import { AiOutlineCalendar, AiOutlineSchedule } from "react-icons/ai";
+import { IoGridOutline } from "react-icons/io5";
 import { PiGraphFill } from "react-icons/pi";
 import { BiLogOut, BiLogIn } from "react-icons/bi";
 import { Course } from "../CourseUI/CourseTypes";
@@ -8,7 +9,7 @@ import { useAuth } from "react-oidc-context";
 import { signOutRedirect } from "../../config/api";
 import { TERMS } from "../../config/terms";
 
-type View = "calendar" | "graph" | "map" | "plan";
+type View = "calendar" | "graph" | "map" | "plan" | "planner";
 
 interface HeaderProps {
   showView: (view: View) => void;
@@ -50,6 +51,7 @@ const Header: React.FC<HeaderProps> = ({
   const tabs: { view: View; label: string; icon: JSX.Element }[] = [
     { view: "calendar", label: "Scheduler", icon: <AiOutlineCalendar size={18} /> },
     { view: "graph", label: "Prerequisites", icon: <PiGraphFill size={18} /> },
+    { view: "planner", label: "Planner", icon: <IoGridOutline size={18} /> },
     { view: "plan", label: "Model Plans", icon: <AiOutlineSchedule size={18} /> },
   ];
   const isDesktop = windowWidth >= 1001;
