@@ -4,6 +4,7 @@ import { API_URLS } from "../../config/api";
 import { baseCode, buildUnlockIndex, buildVariantIndex, PrereqMap } from "./prereqs";
 
 const COMPLETED_KEY = "completedCourses";
+const GRADES_KEY = "completedGrades";
 const cache = new Map<string, PrereqMap>();
 
 export function usePrereqInfo(term: string, year: string) {
@@ -50,9 +51,27 @@ const readCompleted = (): Set<string> => {
   }
 };
 
-/** Courses the student has already finished, kept in localStorage. */
+const readGrades = (): Record<string, string> => {
+  try {
+    const stored = localStorage.getItem(GRADES_KEY);
+    return stored ? (JSON.parse(stored) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+};
+
+/** Courses the student has already finished (and their grades), kept in localStorage. */
 export function useCompletedCourses(variants: Map<string, string[]>) {
   const [completed, setCompleted] = useState<Set<string>>(readCompleted);
+  const [grades, setGrades] = useState<Record<string, string>>(readGrades);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(GRADES_KEY, JSON.stringify(grades));
+    } catch {
+      // storage unavailable
+    }
+  }, [grades]);
 
   useEffect(() => {
     try {
@@ -75,7 +94,32 @@ export function useCompletedCourses(variants: Map<string, string[]>) {
     [variants]
   );
 
-  const clearCompleted = useCallback(() => setCompleted(new Set()), []);
+  /** Marks many courses at once, e.g. from a pasted transcript, optionally with grades. */
+  const markCompleted = useCallback(
+    (entries: { code: string; grade?: string }[]) => {
+      setCompleted((prev) => {
+        const next = new Set(prev);
+        entries.forEach(({ code }) =>
+          (variants.get(baseCode(code)) ?? [code]).forEach((c) => next.add(c))
+        );
+        return next;
+      });
+      setGrades((prev) => {
+        const next = { ...prev };
+        entries.forEach(({ code, grade }) => {
+          if (!grade) return;
+          (variants.get(baseCode(code)) ?? [code]).forEach((c) => (next[c] = grade));
+        });
+        return next;
+      });
+    },
+    [variants]
+  );
 
-  return { completed, setCourseCompleted, clearCompleted };
+  const clearCompleted = useCallback(() => {
+    setCompleted(new Set());
+    setGrades({});
+  }, []);
+
+  return { completed, grades, setCourseCompleted, markCompleted, clearCompleted };
 }

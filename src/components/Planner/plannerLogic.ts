@@ -8,6 +8,20 @@ export interface PlanItem {
   /** Shown when the course isn't in the catalog data, and for requirement cards */
   label?: string;
   credits?: number;
+  /** Requirement cards only: the student has already satisfied it */
+  done?: boolean;
+}
+
+export const GRADE_ORDER = ["E", "D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A"];
+/** Grades that count as passing for a course taken at UF */
+export const PASSING_GRADES = new Set(GRADE_ORDER.slice(1).concat(["S", "P", "TR", "AP", "CR"]));
+
+/** True when `grade` meets `minimum` (non-letter grades like S, P, TR always do). */
+export function meetsMinimumGrade(grade: string | undefined, minimum: string | null) {
+  if (!grade || !minimum) return true;
+  const have = GRADE_ORDER.indexOf(grade);
+  const need = GRADE_ORDER.indexOf(minimum);
+  return have === -1 || need === -1 || have >= need;
 }
 
 export const MIN_CREDITS = 12;
@@ -109,7 +123,8 @@ const withAliases = (codes: Iterable<string>) => {
 export function validatePlan(
   semesters: PlanSemester[],
   info: PrereqMap,
-  completed: Set<string>
+  completed: Set<string>,
+  grades: Record<string, string> = {}
 ): Map<string, PlanViolation> {
   const violations = new Map<string, PlanViolation>();
   const prior = withAliases(completed);
@@ -126,8 +141,18 @@ export function validatePlan(
     semester.items.forEach((item) => {
       const course = info[item.code];
       if (!course) return;
+      // a completed course with too low a grade (say a D where a C is needed) doesn't count
+      const gradeOf = (code: string) =>
+        [code, ...aliasesOf(code)].map((alias) => grades[alias]).find(Boolean);
+      const usable = (group: string[]) =>
+        group.some(
+          (code) =>
+            prior.has(code) &&
+            (!aliasesOf(code).some((alias) => completed.has(alias)) ||
+              meetsMinimumGrade(gradeOf(code), course.minGrade))
+        );
       const missing = [
-        ...course.prereq.filter((group) => !anyIn(group, prior)),
+        ...course.prereq.filter((group) => !usable(group)),
         ...course.concurrent.filter((group) => !anyIn(group, priorOrSame)),
         ...course.coreq.filter((group) => !anyIn(group, priorOrSame)),
       ];
@@ -145,6 +170,25 @@ export const semesterCredits = (semester: PlanSemester, info: PrereqMap) =>
 
 export function totalCredits(semesters: PlanSemester[], info: PrereqMap) {
   return semesters.reduce((sum, semester) => sum + semesterCredits(semester, info), 0);
+}
+
+/** Credits the student has already finished: completed courses plus requirement cards marked done. */
+export function completedCredits(
+  semesters: PlanSemester[],
+  info: PrereqMap,
+  completed: Set<string>
+) {
+  return semesters.reduce(
+    (sum, semester) =>
+      sum +
+      semester.items.reduce((s, item) => {
+        const done = isRequirement(item)
+          ? !!item.done
+          : aliasesOf(item.code).some((alias) => completed.has(alias));
+        return done ? s + itemCredits(item, info) : s;
+      }, 0),
+    0
+  );
 }
 
 /** Semesters that have courses but fall short of full-time (12 credits). */
