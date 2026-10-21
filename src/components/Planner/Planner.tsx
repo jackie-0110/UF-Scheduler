@@ -157,7 +157,10 @@ const Planner: React.FC = () => {
             Couldn't load the course data. The server may be waking up; try again in a moment.
           </p>
         ) : (
-          <ClipLoader color="#0f44cd" size={60} />
+          <>
+            <ClipLoader color="#0f44cd" size={60} />
+            <p className="planner-hint">Loading course data. The first visit can take up to 30 seconds while the server wakes up.</p>
+          </>
         )}
       </div>
     );

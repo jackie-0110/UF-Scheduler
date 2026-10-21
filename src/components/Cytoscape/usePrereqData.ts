@@ -6,30 +6,64 @@ import { baseCode, buildUnlockIndex, buildVariantIndex, PrereqMap } from "./prer
 const COMPLETED_KEY = "completedCourses";
 const GRADES_KEY = "completedGrades";
 const cache = new Map<string, PrereqMap>();
+const inflight = new Map<string, Promise<PrereqMap>>();
+const STORE_PREFIX = "prereqInfo:";
+
+const readStored = (key: string): PrereqMap | null => {
+  try {
+    const stored = localStorage.getItem(STORE_PREFIX + key);
+    return stored ? (JSON.parse(stored) as PrereqMap) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** One request per term, shared by every caller; also refreshes the saved copy. */
+export function fetchPrereqs(term: string, year: string): Promise<PrereqMap> {
+  const key = `${term}_${year}`;
+  const pending = inflight.get(key);
+  if (pending) return pending;
+  const request = axios
+    .get<PrereqMap>(API_URLS.GET_PREREQS, { params: { term, year } })
+    .then((response) => {
+      cache.set(key, response.data);
+      try {
+        localStorage.setItem(STORE_PREFIX + key, JSON.stringify(response.data));
+      } catch {
+        // storage full or unavailable: skip the saved copy
+      }
+      return response.data;
+    })
+    .finally(() => inflight.delete(key));
+  inflight.set(key, request);
+  return request;
+}
+
+/** Start loading ahead of time so the first visit to Planner/Prerequisites isn't waiting on a cold server. */
+export function prefetchPrereqs() {
+  [["fall", "26"], ["spring", "27"]].forEach(([term, year]) => {
+    fetchPrereqs(term, year).catch(() => undefined);
+  });
+}
 
 export function usePrereqInfo(term: string, year: string) {
   const key = `${term}_${year}`;
-  const [info, setInfo] = useState<PrereqMap | null>(cache.get(key) ?? null);
+  // show the saved copy right away, then swap in fresh data when it arrives
+  const [info, setInfo] = useState<PrereqMap | null>(() => cache.get(key) ?? readStored(key));
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const cached = cache.get(key);
-    if (cached) {
-      setInfo(cached);
-      setError(false);
-      return;
-    }
     let cancelled = false;
-    setInfo(null);
+    const known = cache.get(key) ?? readStored(key);
+    setInfo(known);
     setError(false);
-    axios
-      .get<PrereqMap>(API_URLS.GET_PREREQS, { params: { term, year } })
-      .then((response) => {
-        cache.set(key, response.data);
-        if (!cancelled) setInfo(response.data);
+    if (cache.has(key)) return;
+    fetchPrereqs(term, year)
+      .then((data) => {
+        if (!cancelled) setInfo(data);
       })
       .catch(() => {
-        if (!cancelled) setError(true);
+        if (!cancelled && !known) setError(true);
       });
     return () => {
       cancelled = true;

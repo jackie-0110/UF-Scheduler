@@ -14,12 +14,17 @@ import AIChat from "../../components/Chat/AIChat";
 import ModelPlan from "../../components/ModelPlan/ModelPlan";
 import Planner from "../../components/Planner/Planner";
 import Graph from "../../components/Cytoscape/Graph";
+import { prefetchPrereqs } from "../../components/Cytoscape/usePrereqData";
 import { ChangeEvent } from "react";
 import { useAIActionStore } from "../../store/aiActionStore";
 import { API_URLS, BACKEND_URLS } from "../../config/api";
 import { DEFAULT_TERM, isKnownTerm } from "../../config/terms";
 
 const Main = () => {
+  useEffect(() => {
+    prefetchPrereqs();
+  }, []);
+
   const [selectedMajor, setSelectedMajor] = useState<string | null>(() => {
     const storedSelectedMajor = localStorage.getItem("selectedMajor");
     if (storedSelectedMajor) {
