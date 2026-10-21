@@ -78,3 +78,36 @@ describe("minimum grades", () => {
     expect(validatePlan(semesters, info, completed, { COP3502C: "D" }).size).toBe(1);
   });
 });
+
+describe("parseTranscript course history table", () => {
+  const history = [
+    "Fall 2025\tCOP 3502\tProgramming Fundamentals 1\t4\tA\t--",
+    "Fall 2025\tMAC 2311\tCalculus 1\t4\tP\t--",
+    "Fall 2025\tAML L000\tTransfer AML Course\t3\tB\t--",
+    "Fall 2025\tMAC 2311\tCalculus 1\t4\tP\tRepeat Code",
+  ].join("\n");
+
+  it("reads tab-separated rows, counts P as completed, skips L000 placeholders", () => {
+    const rows = parseTranscript(history, info);
+    expect(rows.map((r) => [r.code, r.grade, r.status])).toEqual([
+      ["COP3502C", "A", "completed"],
+      ["MAC2311", "P", "completed"],
+    ]);
+  });
+
+  it("reads one cell per line", () => {
+    const rows = parseTranscript(
+      "Fall 2025\nCOP 3502\nProgramming Fundamentals 1\n4\nB-\n--\nFall 2025\nMAC 2311\nCalculus 1\n4\nP\n--",
+      info
+    );
+    expect(rows.map((r) => [r.code, r.grade, r.status])).toEqual([
+      ["COP3502C", "B-", "completed"],
+      ["MAC2311", "P", "completed"],
+    ]);
+  });
+
+  it("treats a graded-less row with credits as in progress", () => {
+    const rows = parseTranscript("Fall 2026\tCOP 3503\tProgramming Fundamentals 2\t3\t\t--", info);
+    expect(rows[0].status).toBe("in-progress");
+  });
+});

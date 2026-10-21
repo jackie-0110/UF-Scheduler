@@ -26,46 +26,76 @@ const SECTION_RESET = /^(fall|spring|summer)\s+\d{4}|transcript totals|courses? 
 const resolveCode = (code: string, info: PrereqMap) =>
   info[code] ? code : info[`${code}C`] ? `${code}C` : code;
 
+const TERM_LINE = /^(fall|spring|summer)\s+\d{4}\s*$/i;
+const CREDITS_THEN_GRADE = /(?:^|[\s|])\d{1,2}(?:\.\d+)?(?:[\s|]+)([A-Z][+-]?|--)?(?=[\s|]|$)/;
+
 /**
- * Reads pasted transcript or degree-audit text. Each line holding a course code becomes a row.
- * The grade is the last standalone grade-looking token on that line; a passing grade or
- * transfer/AP credit means completed, no grade means in progress, W/F/failing means ignore.
+ * Pasting the ONE.UF "Course History" table gives either one tab-separated row per course or
+ * one cell per line. Glue each code line to the cells after it so both read as a single record.
+ */
+function toRecords(text: string): string[] {
+  const records: string[] = [];
+  text.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.replace(/\u00a0/g, " ").trim();
+    if (!line) return;
+    const last = records.length - 1;
+    const isBoundary = TERM_LINE.test(line) || /^(term|course)\b.*\b(title|credits)\b/i.test(line);
+    if (isBoundary || CODE_RE.test(line) || last < 0) records.push(line);
+    else records[last] += `\t${line}`;
+  });
+  return records;
+}
+
+/**
+ * Reads pasted transcript, course history or degree-audit text. Each record holding a course
+ * code becomes a row. The grade is the cell after the credits when there is one, otherwise the
+ * last standalone grade-looking token. A passing grade or AP/IB/transfer credit (P, TR) means
+ * completed, no grade means in progress, W/F/failing means ignore.
  */
 export function parseTranscript(text: string, info: PrereqMap): TranscriptRow[] {
   const rows = new Map<string, TranscriptRow>();
   let inProgressSection = false;
 
-  text.split(/\r?\n/).forEach((rawLine) => {
-    const line = rawLine.replace(/\u00a0/g, " ").trim();
+  toRecords(text).forEach((record) => {
+    const line = record;
     const match = line.match(CODE_RE);
     if (!match) {
       // headers like "Courses In Progress" mark the ungraded rows that follow
       if (IN_PROGRESS_HEADER.test(line)) inProgressSection = true;
-      else if (SECTION_RESET.test(line)) inProgressSection = false;
+      else if (SECTION_RESET.test(line) || TERM_LINE.test(line)) inProgressSection = false;
       return;
     }
 
     const code = resolveCode(`${match[1]}${match[2]}`, info);
     const rest = line.slice((match.index ?? 0) + match[0].length);
     const tokens = rest.split(/[\s,;|]+/).filter(Boolean);
-    const grade = [...tokens].reverse().find((token) => GRADE_TOKENS.has(token));
+    const creditsCell = rest.match(CREDITS_THEN_GRADE);
+    const hasCredits = !!creditsCell;
+    const cellGrade = creditsCell?.[1] && creditsCell[1] !== "--" ? creditsCell[1] : undefined;
+    const grade =
+      cellGrade && GRADE_TOKENS.has(cellGrade)
+        ? cellGrade
+        : hasCredits
+        ? undefined
+        : [...tokens].reverse().find((token) => GRADE_TOKENS.has(token));
 
     let status: TranscriptStatus;
     if (grade && PASSING_GRADES.has(grade)) status = "completed";
     else if (grade) status = "ignore"; // F, W, WF, I, U ...
-    else status = inProgressSection || IN_PROGRESS_HEADER.test(rest) ? "in-progress" : "ignore";
+    else status = inProgressSection || hasCredits || IN_PROGRESS_HEADER.test(rest) ? "in-progress" : "ignore";
 
     const previous = rows.get(code);
-    // a retake: keep the better outcome (completed beats ignore)
+    // a retake or a "repeat code" double count: keep the better outcome
     if (previous && previous.status === "completed" && status !== "completed") return;
+    if (/repeat/i.test(line) && previous) return;
 
     rows.set(code, {
       code,
-      title: info[code]?.name ?? tokens.filter((t) => !GRADE_TOKENS.has(t)).slice(0, 8).join(" "),
+      title: info[code]?.name ?? tokens.filter((t) => !GRADE_TOKENS.has(t) && !/^[\d.]+$/.test(t)).slice(0, 8).join(" "),
       grade,
       status,
       inCatalog: !!info[code],
-      line,
+      line: line.replace(/\t/g, "  "),
     });
   });
 

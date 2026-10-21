@@ -168,8 +168,8 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
         {tab === "transcript" && (
           <>
             <p className="planner-hint">
-              In ONE.UF open your unofficial transcript (or degree audit), select all, copy, and
-              paste it here. I look for course codes and grades on each line.
+              In ONE.UF open Course History, select the table, copy, and paste it here. AP/IB/AICE
+              credit (grade P) counts as completed and repeat-code rows are skipped.
             </p>
             <textarea
               className="planner-textarea"
@@ -179,7 +179,7 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
                 setRows(null);
                 setApplied(null);
               }}
-              placeholder={"COP 3502C  Programming Fundamentals 1  A  4.00\nMAC 2311  Analytic Geometry and Calculus 1  B+  4.00"}
+              placeholder={"Fall 2025  AMH 2010  United States to 1877  3  B-\nFall 2025  ECO 2013  Prin Macroeconomics  4  P"}
               aria-label="Transcript text"
             />
             <button className="planner-primary" onClick={readTranscript} disabled={!text.trim()}>
