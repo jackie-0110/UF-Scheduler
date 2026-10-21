@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrereqInfo } from "../Cytoscape/usePrereqData";
 import { PrereqMap } from "../Cytoscape/prereqs";
-import { createDefaultSemesters, newItemId, PlanSemester } from "./plannerLogic";
+import { createDefaultSemesters, isRequirement, newItemId, PlanItem, PlanSemester } from "./plannerLogic";
 
 const PLAN_KEY = "plannerPlan";
 const START_YEAR = 2026;
@@ -28,7 +28,16 @@ const readPlan = (): PlanSemester[] => {
     const stored = localStorage.getItem(PLAN_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as PlanSemester[];
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (parsed.some((semester) => semester.summer)) return parsed;
+        // older saves had only the eight fall/spring semesters: add the summer columns
+        const upgraded = createDefaultSemesters(START_YEAR);
+        const regular = upgraded.filter((semester) => !semester.summer);
+        parsed.forEach((semester, index) => {
+          if (regular[index]) regular[index].items = semester.items;
+        });
+        return upgraded;
+      }
     }
   } catch {
     // fall back to an empty plan
@@ -48,7 +57,12 @@ export function usePlan() {
   }, [semesters]);
 
   const placedCodes = useMemo(
-    () => new Set(semesters.flatMap((semester) => semester.items.map((item) => item.code))),
+    () =>
+      new Set(
+        semesters.flatMap((semester) =>
+          semester.items.filter((item) => !isRequirement(item)).map((item) => item.code)
+        )
+      ),
     [semesters]
   );
 
@@ -82,15 +96,32 @@ export function usePlan() {
     setSemesters((prev) => prev.map((s) => ({ ...s, items: [] })));
   }, []);
 
-  /** Replaces the plan's courses with `arranged` (one list of codes per semester). */
-  const adoptArrangement = useCallback((arranged: string[][]) => {
+  /** Swaps the movable courses for `arranged` (one list per semester); requirement cards stay put. */
+  const adoptArrangement = useCallback((arranged: PlanItem[][]) => {
     setSemesters((prev) =>
       prev.map((s, index) => ({
         ...s,
-        items: (arranged[index] ?? []).map((code) => ({ id: newItemId(), code })),
+        items: [
+          ...s.items.filter(isRequirement),
+          ...(arranged[index] ?? []).map((item) => ({ ...item, id: newItemId() })),
+        ],
       }))
     );
   }, []);
 
-  return { semesters, placedCodes, addCourse, moveItem, removeItem, clearPlan, adoptArrangement };
+  /** Replaces every semester's items (used when loading a major's model plan). */
+  const replaceItems = useCallback((items: PlanItem[][]) => {
+    setSemesters((prev) => prev.map((s, index) => ({ ...s, items: items[index] ?? [] })));
+  }, []);
+
+  return {
+    semesters,
+    placedCodes,
+    addCourse,
+    moveItem,
+    removeItem,
+    clearPlan,
+    adoptArrangement,
+    replaceItems,
+  };
 }

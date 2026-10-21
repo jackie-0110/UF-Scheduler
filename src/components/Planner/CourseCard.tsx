@@ -3,7 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { IoClose, IoSchoolOutline, IoWarningOutline } from "react-icons/io5";
 import { formatCode, PrereqInfo } from "../Cytoscape/prereqs";
-import { creditsOf, PlanViolation } from "./plannerLogic";
+import { PlanViolation } from "./plannerLogic";
 
 const CS_PREFIXES = ["COP", "CIS", "CDA", "COT", "CEN", "CAP", "CNT", "CGS"];
 const MATH_PREFIXES = ["MAC", "MAP", "MAS", "STA", "MTG"];
@@ -22,15 +22,36 @@ interface CourseCardProps {
   course?: PrereqInfo;
   violation?: PlanViolation;
   completed?: boolean;
+  /** Name and credits to show when the course isn't in the catalog data, or for a requirement */
+  label?: string;
+  credits?: number;
+  requirement?: boolean;
   onRemove?: () => void;
   onToggleCompleted?: () => void;
 }
 
 export const CourseCardBody: React.FC<
   Omit<CourseCardProps, "dragId"> & { dragging?: boolean }
-> = ({ code, course, violation, completed, onRemove, onToggleCompleted, dragging }) => {
+> = ({
+  code,
+  course,
+  violation,
+  completed,
+  label,
+  credits,
+  requirement,
+  onRemove,
+  onToggleCompleted,
+  dragging,
+}) => {
   const [open, setOpen] = useState(false);
-  const accent = violation ? "#f59e0b" : completed ? "#16a34a" : deptAccent(code);
+  const accent = requirement
+    ? "#a3a3a3"
+    : violation
+    ? "#f59e0b"
+    : completed
+    ? "#16a34a"
+    : deptAccent(code);
   return (
     <div
       className={`planner-card${dragging ? " dragging" : ""}`}
@@ -38,8 +59,10 @@ export const CourseCardBody: React.FC<
     >
       <div className="planner-card-main">
         <div className="planner-card-top">
-          <span className="planner-card-code">{formatCode(code)}</span>
-          {onToggleCompleted && (
+          <span className="planner-card-code">
+            {requirement ? "Requirement" : formatCode(code)}
+          </span>
+          {onToggleCompleted && !requirement && (
             <button
               type="button"
               className={`planner-icon-btn${completed ? " active" : ""}`}
@@ -76,8 +99,10 @@ export const CourseCardBody: React.FC<
             </span>
           )}
         </div>
-        <p className="planner-card-name">{course?.name ?? "Not in the course data"}</p>
-        <span className="planner-card-credits">{creditsOf(course)} CR</span>
+        <p className="planner-card-name" title={course?.name ?? label}>
+          {course?.name ?? label ?? "Not in the course data"}
+        </p>
+        <span className="planner-card-credits">{course?.credits ?? credits ?? 0} CR</span>
       </div>
       {onRemove && (
         <button

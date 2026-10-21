@@ -3,10 +3,12 @@ import { useDroppable } from "@dnd-kit/core";
 import CourseCard from "./CourseCard";
 import { PrereqMap } from "../Cytoscape/prereqs";
 import {
-  creditsOf,
-  DEFAULT_CREDIT_LIMIT,
+  creditLimitOf,
+  isRequirement,
+  MIN_CREDITS,
   PlanSemester,
   PlanViolation,
+  semesterCredits,
 } from "./plannerLogic";
 
 interface SemesterColumnProps {
@@ -28,25 +30,36 @@ const SemesterColumn: React.FC<SemesterColumnProps> = ({
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `sem:${semester.id}` });
   const [season, year] = semester.term.split(" ");
-  const credits = semester.items.reduce((sum, item) => sum + creditsOf(info[item.code]), 0);
-  const overloaded = credits > DEFAULT_CREDIT_LIMIT;
+  const credits = semesterCredits(semester, info);
+  const limit = creditLimitOf(semester);
+  const overloaded = credits > limit;
+  const underloaded = !semester.summer && credits > 0 && credits < MIN_CREDITS;
 
   return (
-    <div className="planner-semester">
+    <div className={`planner-semester${semester.summer ? " summer" : ""}`}>
       <div className="planner-semester-head">
         <div>
           <span className="planner-season">{season}</span>
           <span className="planner-year">{year}</span>
         </div>
-        <span className={`planner-credit-chip${overloaded ? " over" : ""}`}>
+        <span
+          className={`planner-credit-chip${overloaded || underloaded ? " over" : ""}`}
+          title={
+            underloaded
+              ? `Under ${MIN_CREDITS} credits: below full-time status`
+              : overloaded
+              ? `Over ${limit} credits`
+              : undefined
+          }
+        >
           {credits}
-          {overloaded ? " ⚠" : ""} cr
+          {overloaded || underloaded ? " ⚠" : ""} cr
         </span>
       </div>
       <div className="planner-progress">
         <div
-          className={overloaded ? "over" : ""}
-          style={{ width: `${Math.min(100, (credits / DEFAULT_CREDIT_LIMIT) * 100)}%` }}
+          className={overloaded || underloaded ? "over" : ""}
+          style={{ width: `${Math.min(100, (credits / limit) * 100)}%` }}
         />
       </div>
       <div
@@ -59,6 +72,9 @@ const SemesterColumn: React.FC<SemesterColumnProps> = ({
             dragId={`item:${item.id}`}
             code={item.code}
             course={info[item.code]}
+            label={item.label}
+            credits={item.credits}
+            requirement={isRequirement(item)}
             violation={violations.get(item.id)}
             completed={completed.has(item.code)}
             onRemove={() => onRemove(item.id)}

@@ -1,5 +1,12 @@
 import { PrereqMap, formatCode } from "../Cytoscape/prereqs";
-import { creditsOf, PlanSemester, PlanViolation } from "./plannerLogic";
+import {
+  isRequirement,
+  itemCredits,
+  MIN_CREDITS,
+  PlanSemester,
+  PlanViolation,
+  semesterCredits,
+} from "./plannerLogic";
 
 /** Client-side PDF of the plan (jsPDF is loaded on demand). */
 export async function exportPlanToPdf(
@@ -54,7 +61,7 @@ export async function exportPlanToPdf(
 
   let cumulative = 0;
   semesters.forEach((semester) => {
-    const credits = semester.items.reduce((sum, item) => sum + creditsOf(info[item.code]), 0);
+    const credits = semesterCredits(semester, info);
     cumulative += credits;
     ensureSpace(20 + semester.items.length * 6);
 
@@ -87,10 +94,11 @@ export async function exportPlanToPdf(
         ensureSpace(10);
         const violation = violations.get(item.id);
         if (violation) doc.setTextColor(250, 70, 24);
-        doc.text(formatCode(item.code), margin + 4, y);
-        const name = doc.splitTextToSize(info[item.code]?.name ?? "", contentWidth - 48)[0] ?? "";
+        doc.text(isRequirement(item) ? "Req." : formatCode(item.code), margin + 4, y);
+        const name =
+          doc.splitTextToSize(info[item.code]?.name ?? item.label ?? "", contentWidth - 48)[0] ?? "";
         doc.text(name, margin + 28, y);
-        doc.text(String(creditsOf(info[item.code])), margin + contentWidth - 16, y);
+        doc.text(String(itemCredits(item, info)), margin + contentWidth - 16, y);
         if (violation) {
           y += 4;
           doc.setFontSize(8);
@@ -106,6 +114,13 @@ export async function exportPlanToPdf(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text(`Semester total: ${credits} cr  |  Cumulative: ${cumulative} cr`, margin + 4, y);
+    if (credits > 0 && credits < MIN_CREDITS) {
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(180, 83, 9);
+      doc.text(`Under ${MIN_CREDITS} credits: below full-time status`, margin + 4, y);
+      doc.setTextColor(0, 0, 0);
+    }
     y += 9;
   });
 

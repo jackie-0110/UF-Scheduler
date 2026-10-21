@@ -24,7 +24,14 @@ import { CourseCardBody } from "./CourseCard";
 import SemesterColumn from "./SemesterColumn";
 import ArrangeDialog from "./ArrangeDialog";
 import { usePlan, usePlannerCatalog } from "./usePlanner";
-import { DEGREE_CREDITS, totalCredits, validatePlan } from "./plannerLogic";
+import {
+  DEGREE_CREDITS,
+  MIN_CREDITS,
+  totalCredits,
+  underloadedSemesters,
+  validatePlan,
+} from "./plannerLogic";
+import { buildMajorPlan, majorNames } from "./majorPlans";
 import { exportPlanToPdf } from "./plannerPdf";
 import "./PlannerStyles.css";
 
@@ -35,11 +42,20 @@ const Planner: React.FC = () => {
   // Marking COP3502C completed also marks COP3502, so the prerequisite graph agrees
   const variants = useMemo(() => (info ? buildVariantIndex(info) : NO_VARIANTS), [info]);
   const { completed, setCourseCompleted } = useCompletedCourses(variants);
-  const { semesters, placedCodes, addCourse, moveItem, removeItem, clearPlan, adoptArrangement } =
-    usePlan();
+  const {
+    semesters,
+    placedCodes,
+    addCourse,
+    moveItem,
+    removeItem,
+    clearPlan,
+    adoptArrangement,
+    replaceItems,
+  } = usePlan();
   const [activeDrag, setActiveDrag] = useState<string | null>(null);
   const [arrangeOpen, setArrangeOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showSummers, setShowSummers] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -51,14 +67,27 @@ const Planner: React.FC = () => {
     [semesters, info, completed]
   );
   const credits = info ? totalCredits(semesters, info) : 0;
+  const lightSemesters = info ? underloadedSemesters(semesters, info).length : 0;
+
+  const loadMajor = (major: string) => {
+    if (!major || !info) return;
+    const hasWork = semesters.some((semester) => semester.items.length > 0);
+    if (hasWork && !window.confirm(`Replace your current plan with the ${major} model plan?`)) {
+      return;
+    }
+    replaceItems(buildMajorPlan(major, info, semesters));
+  };
 
   const yearGroups = useMemo(() => {
     const groups: { label: string; items: typeof semesters }[] = [];
-    for (let i = 0; i < semesters.length; i += 2) {
-      groups.push({ label: `Year ${Math.floor(i / 2) + 1}`, items: semesters.slice(i, i + 2) });
-    }
+    semesters.forEach((semester) => {
+      if (semester.summer && !showSummers && semester.items.length === 0) return;
+      const last = groups[groups.length - 1];
+      if (last && last.label === `Year ${semester.yearIndex + 1}`) last.items.push(semester);
+      else groups.push({ label: `Year ${semester.yearIndex + 1}`, items: [semester] });
+    });
     return groups;
-  }, [semesters]);
+  }, [semesters, showSummers]);
 
   const toggleCompleted = (code: string) => setCourseCompleted(code, !completed.has(code));
 
@@ -125,12 +154,41 @@ const Planner: React.FC = () => {
             <IoWarningOutline size={14} /> {violations.size} prereq
             {violations.size === 1 ? "" : "s"}
           </span>
-        ) : credits > 0 ? (
+        ) : null}
+        {lightSemesters > 0 && (
+          <span
+            className="planner-chip warn"
+            title={`Full-time status needs at least ${MIN_CREDITS} credits per semester`}
+          >
+            <IoWarningOutline size={14} /> {lightSemesters} under {MIN_CREDITS} cr
+          </span>
+        )}
+        {violations.size === 0 && lightSemesters === 0 && credits > 0 && (
           <span className="planner-chip ok">
             <IoCheckmarkCircleOutline size={14} /> Valid
           </span>
-        ) : null}
+        )}
         <div className="planner-spacer" />
+        <select
+          className="planner-major"
+          value=""
+          onChange={(e) => loadMajor(e.target.value)}
+          aria-label="Start from a major's model plan"
+        >
+          <option value="">Start from a major…</option>
+          {majorNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <button
+          className={`planner-ghost${showSummers ? " on" : ""}`}
+          onClick={() => setShowSummers((value) => !value)}
+          aria-pressed={showSummers}
+        >
+          Summers
+        </button>
         <button className="planner-ghost" onClick={() => setArrangeOpen(true)}>
           <IoSparklesOutline size={15} /> Arrange
         </button>

@@ -3,14 +3,26 @@ import { PrereqInfo, PrereqMap } from "../Cytoscape/prereqs";
 /** A course placed in a semester. `id` is unique per placement. */
 export interface PlanItem {
   id: string;
+  /** Course code, or `REQ:<n>` for a requirement card ("Gen Ed Humanities", "Elective") */
   code: string;
+  /** Shown when the course isn't in the catalog data, and for requirement cards */
+  label?: string;
+  credits?: number;
 }
+
+export const MIN_CREDITS = 12;
+export const isRequirement = (item: PlanItem) => item.code.startsWith("REQ:");
+
+export const itemCredits = (item: PlanItem, info: PrereqMap) =>
+  info[item.code]?.credits ?? item.credits ?? 0;
 
 export interface PlanSemester {
   id: string;
   term: string;
   yearIndex: number;
   items: PlanItem[];
+  /** Optional summer term between spring and the next fall */
+  summer?: boolean;
 }
 
 export interface PlanViolation {
@@ -19,9 +31,13 @@ export interface PlanViolation {
 }
 
 export const DEFAULT_CREDIT_LIMIT = 18;
+export const SUMMER_CREDIT_LIMIT = 12;
 export const DEGREE_CREDITS = 120;
 
 export const creditsOf = (course: PrereqInfo | undefined) => course?.credits ?? 0;
+
+export const creditLimitOf = (semester: PlanSemester) =>
+  semester.summer ? SUMMER_CREDIT_LIMIT : DEFAULT_CREDIT_LIMIT;
 
 export function createDefaultSemesters(startYear: number): PlanSemester[] {
   const semesters: PlanSemester[] = [];
@@ -38,6 +54,15 @@ export function createDefaultSemesters(startYear: number): PlanSemester[] {
       yearIndex: year,
       items: [],
     });
+    if (year < 3) {
+      semesters.push({
+        id: `sum-${year}`,
+        term: `Summer ${startYear + year + 1}`,
+        yearIndex: year,
+        items: [],
+        summer: true,
+      });
+    }
   }
   return semesters;
 }
@@ -55,6 +80,19 @@ const anyIn = (group: string[], codes: Set<string>) => group.some((code) => code
  */
 export const aliasesOf = (code: string): string[] =>
   /\dC$/.test(code) ? [code, code.slice(0, -1)] : [code, `${code}C`];
+
+/** "ENC 1101 or ENC 1102" -> [ENC1101, ENC1102]; "PHY 2048 & 2048L" -> [PHY2048, PHY2048L] */
+export function codesInLabel(label: string): string[] {
+  const codes: string[] = [];
+  let prefix = "";
+  const pattern = /\b([A-Z]{3})?\s?(\d{4}[A-Z]?)\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(label)) !== null) {
+    if (match[1]) prefix = match[1];
+    if (prefix) codes.push(`${prefix}${match[2]}`);
+  }
+  return codes;
+}
 
 const withAliases = (codes: Iterable<string>) => {
   const set = new Set<string>();
@@ -77,7 +115,12 @@ export function validatePlan(
   const prior = withAliases(completed);
 
   semesters.forEach((semester) => {
-    const same = withAliases(semester.items.map((item) => item.code));
+    // a requirement card such as "ENC 1101 or ENC 1102" is assumed to cover the courses it names
+    const same = withAliases(
+      semester.items.flatMap((item) =>
+        isRequirement(item) ? codesInLabel(item.label ?? "") : [item.code]
+      )
+    );
     const priorOrSame = new Set([...Array.from(prior), ...Array.from(same)]);
 
     semester.items.forEach((item) => {
@@ -97,41 +140,59 @@ export function validatePlan(
   return violations;
 }
 
+export const semesterCredits = (semester: PlanSemester, info: PrereqMap) =>
+  semester.items.reduce((sum, item) => sum + itemCredits(item, info), 0);
+
 export function totalCredits(semesters: PlanSemester[], info: PrereqMap) {
-  return semesters.reduce(
-    (sum, semester) =>
-      sum + semester.items.reduce((s, item) => s + creditsOf(info[item.code]), 0),
-    0
-  );
+  return semesters.reduce((sum, semester) => sum + semesterCredits(semester, info), 0);
 }
+
+/** Semesters that have courses but fall short of full-time (12 credits). */
+export const underloadedSemesters = (semesters: PlanSemester[], info: PrereqMap) =>
+  semesters.filter((semester) => {
+    if (semester.summer) return false;
+    const credits = semesterCredits(semester, info);
+    return credits > 0 && credits < MIN_CREDITS;
+  });
 
 export type ArrangeStrategy = "early" | "balanced";
 
 export interface ArrangedPlan {
   strategy: ArrangeStrategy;
-  /** One list of course codes per semester, in the same order as the plan's semesters */
-  semesters: string[][];
+  /** The rearranged (movable) courses for each semester, in the plan's semester order */
+  semesters: PlanItem[][];
+  /** Courses whose prerequisites still aren't satisfied after arranging */
   warnings: number;
+  /** Semesters that still end up under 12 credits */
+  underMin: number;
 }
 
 /**
  * Rearranges the placed courses into valid semesters: every prerequisite lands in an
- * earlier semester, no semester goes over the credit limit, and courses that don't fit
- * anywhere spill into the last semester (and are counted as warnings).
+ * earlier semester, no semester goes over the credit limit, and used semesters get at
+ * least 12 credits where the prerequisites allow it. Requirement cards (`fixed`) stay
+ * where they are but count toward each semester's credits.
  */
 export function arrangeCourses(
-  codes: string[],
-  semesterCount: number,
+  movable: PlanItem[],
+  fixed: PlanItem[][],
+  /** Which semesters courses may be placed in (summers are left alone) */
+  allowed: boolean[],
   info: PrereqMap,
   completed: Set<string>,
   maxCredits: number,
   strategy: ArrangeStrategy
 ): ArrangedPlan {
+  const semesterCount = fixed.length;
+  const codes = movable.map((item) => item.code);
+  const itemByCode = new Map(movable.map((item) => [item.code, item]));
   const planCodeFor = new Map<string, string>();
   codes.forEach((code) => aliasesOf(code).forEach((alias) => planCodeFor.set(alias, code)));
   const done = withAliases(completed);
   const semesterOf = new Map<string, number>();
-  const loads = new Array<number>(semesterCount).fill(0);
+  const creditsFor = (code: string) => itemCredits(itemByCode.get(code)!, info);
+
+  const loads = fixed.map((items) => items.reduce((sum, item) => sum + itemCredits(item, info), 0));
   const buckets: string[][] = Array.from({ length: semesterCount }, () => []);
 
   // depth-first order so that prerequisites are placed before the courses that need them
@@ -140,8 +201,7 @@ export function arrangeCourses(
   const visit = (code: string) => {
     if (state.has(code)) return;
     state.set(code, "visiting");
-    const course = info[code];
-    course?.prereq.forEach((group) =>
+    info[code]?.prereq.forEach((group) =>
       group.forEach((prereq) => {
         const planned = planCodeFor.get(prereq);
         if (planned && planned !== code) visit(planned);
@@ -150,35 +210,38 @@ export function arrangeCourses(
     state.set(code, "done");
     ordered.push(code);
   };
-  [...codes]
-    .sort((a, b) => a.localeCompare(b))
-    .forEach(visit);
+  [...codes].sort((a, b) => a.localeCompare(b)).forEach(visit);
 
   ordered.forEach((code) => {
     const course = info[code];
-    const credits = creditsOf(course);
+    const credits = creditsFor(code);
 
     // earliest semester allowed by prerequisites that are also in the plan
     let earliest = 0;
-    course?.prereq.forEach((group) => {
-      if (anyIn(group, done)) return;
-      const placed = group.filter((c) => semesterOf.has(c)).map((c) => semesterOf.get(c)!);
-      if (placed.length > 0) earliest = Math.max(earliest, Math.min(...placed) + 1);
-    });
-    [...(course?.coreq ?? []), ...(course?.concurrent ?? [])].forEach((group) => {
-      if (anyIn(group, done)) return;
-      const placed = group.filter((c) => semesterOf.has(c)).map((c) => semesterOf.get(c)!);
-      if (placed.length > 0) earliest = Math.max(earliest, Math.min(...placed));
-    });
+    const constrain = (groups: string[][], sameSemesterOk: boolean) =>
+      groups.forEach((group) => {
+        if (anyIn(group, done)) return;
+        const placed = group.filter((c) => semesterOf.has(c)).map((c) => semesterOf.get(c)!);
+        if (placed.length > 0) {
+          earliest = Math.max(earliest, Math.min(...placed) + (sameSemesterOk ? 0 : 1));
+        }
+      });
+    constrain(course?.prereq ?? [], false);
+    constrain([...(course?.coreq ?? []), ...(course?.concurrent ?? [])], true);
 
     const candidates: number[] = [];
     for (let i = earliest; i < semesterCount; i++) {
-      if (loads[i] + credits <= maxCredits) candidates.push(i);
+      if (allowed[i] && loads[i] + credits <= maxCredits) candidates.push(i);
     }
 
     let target: number;
     if (candidates.length === 0) {
-      target = semesterCount - 1;
+      // nothing has room: use the lightest allowed semester that prerequisites permit
+      const open = Array.from({ length: semesterCount }, (_, i) => i).filter(
+        (i) => allowed[i] && i >= earliest
+      );
+      const fallback = open.length > 0 ? open : [allowed.lastIndexOf(true)];
+      target = fallback.reduce((best, i) => (loads[i] < loads[best] ? i : best), fallback[0]);
     } else if (strategy === "early") {
       target = candidates[0];
     } else {
@@ -190,15 +253,55 @@ export function arrangeCourses(
     buckets[target].push(code);
   });
 
-  const semesters: PlanSemester[] = buckets.map((bucket, i) => ({
-    id: `arranged-${i}`,
-    term: "",
-    yearIndex: Math.floor(i / 2),
-    items: bucket.map((code) => ({ id: `${code}-${i}`, code })),
-  }));
+  const asSemesters = (): PlanSemester[] =>
+    buckets.map((bucket, i) => ({
+      id: `arranged-${i}`,
+      term: "",
+      yearIndex: Math.floor(i / 2),
+      items: [
+        ...fixed[i],
+        ...bucket.map((code) => ({ ...itemByCode.get(code)!, id: `${code}-${i}` })),
+      ],
+    }));
+  const violationCount = () => validatePlan(asSemesters(), info, completed).size;
+
+  // Repair pass: top up any light semester by pulling a course in from another one,
+  // as long as nothing goes over the limit and no new prerequisite problem appears.
+  let guard = 0;
+  let improved = true;
+  while (improved && guard++ < 100) {
+    improved = false;
+    const light = loads.findIndex((load, i) => allowed[i] && load > 0 && load < MIN_CREDITS);
+    if (light === -1) break;
+    const baseline = violationCount();
+    const sources = Array.from({ length: semesterCount }, (_, i) => i)
+      .filter((i) => i !== light && allowed[i])
+      .sort((a, b) => (a > light ? 0 : 1) - (b > light ? 0 : 1) || a - b);
+
+    outer: for (const from of sources) {
+      for (const code of buckets[from]) {
+        const credits = creditsFor(code);
+        const remaining = loads[from] - credits;
+        if (loads[light] + credits > maxCredits) continue;
+        if (remaining !== 0 && remaining < MIN_CREDITS) continue;
+        buckets[from] = buckets[from].filter((c) => c !== code);
+        buckets[light].push(code);
+        if (violationCount() <= baseline) {
+          loads[from] -= credits;
+          loads[light] += credits;
+          improved = true;
+          break outer;
+        }
+        buckets[light] = buckets[light].filter((c) => c !== code);
+        buckets[from].push(code);
+      }
+    }
+  }
+
   return {
     strategy,
-    semesters: buckets,
-    warnings: validatePlan(semesters, info, completed).size,
+    semesters: buckets.map((bucket) => bucket.map((code) => itemByCode.get(code)!)),
+    warnings: violationCount(),
+    underMin: loads.filter((load, i) => allowed[i] && load > 0 && load < MIN_CREDITS).length,
   };
 }

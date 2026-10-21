@@ -577,3 +577,27 @@
     border-bottom: 1px solid var(--csu-line);
   }
 }
+
+.planner-major {
+  max-width: 220px;
+  padding: 7px 8px;
+  border: 1px solid var(--csu-line);
+  border-radius: 8px;
+  background: var(--csu-surface);
+  color: var(--csu-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.planner-ghost.on {
+  background: var(--csu-blue-tint);
+  color: var(--csu-blue);
+}
+
+.planner-semester.summer {
+  width: 150px;
+}
+
+.planner-semester.summer .planner-dropzone {
+  background: #fffbeb;
+}
