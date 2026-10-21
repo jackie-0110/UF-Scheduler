@@ -75,6 +75,7 @@ const SemesterColumn: React.FC<SemesterColumnProps> = ({
             label={item.label}
             credits={item.credits}
             requirement={isRequirement(item)}
+            done={isRequirement(item) ? item.done : undefined}
             violation={violations.get(item.id)}
             completed={completed.has(item.code)}
             onRemove={() => onRemove(item.id)}

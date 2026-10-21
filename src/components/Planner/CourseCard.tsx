@@ -26,6 +26,8 @@ interface CourseCardProps {
   label?: string;
   credits?: number;
   requirement?: boolean;
+  /** A requirement card the student already satisfied */
+  done?: boolean;
   onRemove?: () => void;
   onToggleCompleted?: () => void;
 }
@@ -40,13 +42,16 @@ export const CourseCardBody: React.FC<
   label,
   credits,
   requirement,
+  done,
   onRemove,
   onToggleCompleted,
   dragging,
 }) => {
   const [open, setOpen] = useState(false);
   const accent = requirement
-    ? "#a3a3a3"
+    ? done
+      ? "#16a34a"
+      : "#a3a3a3"
     : violation
     ? "#f59e0b"
     : completed

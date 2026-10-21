@@ -23,9 +23,13 @@ import CatalogSidebar from "./CatalogSidebar";
 import { CourseCardBody } from "./CourseCard";
 import SemesterColumn from "./SemesterColumn";
 import ArrangeDialog from "./ArrangeDialog";
+import ProgressDialog from "./ProgressDialog";
 import { usePlan, usePlannerCatalog } from "./usePlanner";
 import {
+  aliasesOf,
+  completedCredits,
   DEGREE_CREDITS,
+  isRequirement,
   MIN_CREDITS,
   totalCredits,
   underloadedSemesters,
@@ -41,7 +45,7 @@ const Planner: React.FC = () => {
   const { info, loading, error } = usePlannerCatalog();
   // Marking COP3502C completed also marks COP3502, so the prerequisite graph agrees
   const variants = useMemo(() => (info ? buildVariantIndex(info) : NO_VARIANTS), [info]);
-  const { completed, setCourseCompleted } = useCompletedCourses(variants);
+  const { completed, grades, setCourseCompleted, markCompleted } = useCompletedCourses(variants);
   const {
     semesters,
     placedCodes,
@@ -51,9 +55,12 @@ const Planner: React.FC = () => {
     clearPlan,
     adoptArrangement,
     replaceItems,
+    setItemDone,
+    completeRequirementsThrough,
   } = usePlan();
   const [activeDrag, setActiveDrag] = useState<string | null>(null);
   const [arrangeOpen, setArrangeOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showSummers, setShowSummers] = useState(false);
 
@@ -63,10 +70,11 @@ const Planner: React.FC = () => {
   );
 
   const violations = useMemo(
-    () => (info ? validatePlan(semesters, info, completed) : new Map()),
-    [semesters, info, completed]
+    () => (info ? validatePlan(semesters, info, completed, grades) : new Map()),
+    [semesters, info, completed, grades]
   );
   const credits = info ? totalCredits(semesters, info) : 0;
+  const doneCredits = info ? completedCredits(semesters, info, completed) : 0;
   const lightSemesters = info ? underloadedSemesters(semesters, info).length : 0;
 
   const loadMajor = (major: string) => {
@@ -90,6 +98,22 @@ const Planner: React.FC = () => {
   }, [semesters, showSummers]);
 
   const toggleCompleted = (code: string) => setCourseCompleted(code, !completed.has(code));
+
+  const setItemCompleted = (item: { id: string; code: string }, done: boolean) => {
+    if (isRequirement(item as never)) setItemDone(item.id, done);
+    else setCourseCompleted(item.code, done);
+  };
+
+  const completeThrough = (index: number) => {
+    const codes = semesters
+      .slice(0, index + 1)
+      .flatMap((semester) => semester.items.filter((item) => !isRequirement(item)))
+      .map((item) => ({ code: item.code }));
+    markCompleted(codes);
+    completeRequirementsThrough(index + 1);
+  };
+
+  const applyTranscript = (entries: { code: string; grade?: string }[]) => markCompleted(entries);
 
   const handleDragStart = (event: DragStartEvent) => setActiveDrag(String(event.active.id));
 
@@ -149,6 +173,11 @@ const Planner: React.FC = () => {
         <span className="planner-chip">
           Credits <b>{credits}</b> / {DEGREE_CREDITS}
         </span>
+        {doneCredits > 0 && (
+          <span className="planner-chip done" title="Credits you've already completed">
+            {doneCredits} done
+          </span>
+        )}
         {violations.size > 0 ? (
           <span className="planner-chip warn">
             <IoWarningOutline size={14} /> {violations.size} prereq
@@ -182,6 +211,9 @@ const Planner: React.FC = () => {
             </option>
           ))}
         </select>
+        <button className="planner-ghost" onClick={() => setProgressOpen(true)}>
+          <IoCheckmarkCircleOutline size={15} /> My progress
+        </button>
         <button
           className={`planner-ghost${showSummers ? " on" : ""}`}
           onClick={() => setShowSummers((value) => !value)}
@@ -237,6 +269,19 @@ const Planner: React.FC = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {progressOpen && (
+        <ProgressDialog
+          semesters={semesters}
+          info={info}
+          completed={completed}
+          onLoadMajor={loadMajor}
+          onSetItemDone={setItemCompleted}
+          onCompleteThrough={completeThrough}
+          onApplyTranscript={applyTranscript}
+          onClose={() => setProgressOpen(false)}
+        />
+      )}
 
       {arrangeOpen && (
         <ArrangeDialog

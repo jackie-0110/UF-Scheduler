@@ -109,6 +109,27 @@ export function usePlan() {
     );
   }, []);
 
+  /** Marks a requirement card as satisfied (or not). */
+  const setItemDone = useCallback((itemId: string, done: boolean) => {
+    setSemesters((prev) =>
+      prev.map((s) => ({
+        ...s,
+        items: s.items.map((item) => (item.id === itemId ? { ...item, done } : item)),
+      }))
+    );
+  }, []);
+
+  /** Marks every requirement card in the first `count` semesters as satisfied. */
+  const completeRequirementsThrough = useCallback((count: number) => {
+    setSemesters((prev) =>
+      prev.map((s, index) =>
+        index < count
+          ? { ...s, items: s.items.map((item) => (isRequirement(item) ? { ...item, done: true } : item)) }
+          : s
+      )
+    );
+  }, []);
+
   /** Replaces every semester's items (used when loading a major's model plan). */
   const replaceItems = useCallback((items: PlanItem[][]) => {
     setSemesters((prev) => prev.map((s, index) => ({ ...s, items: items[index] ?? [] })));
@@ -123,5 +144,7 @@ export function usePlan() {
     clearPlan,
     adoptArrangement,
     replaceItems,
+    setItemDone,
+    completeRequirementsThrough,
   };
 }
