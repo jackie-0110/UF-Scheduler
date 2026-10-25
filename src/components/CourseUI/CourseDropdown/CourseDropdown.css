@@ -1,0 +1,106 @@
+/* Sections listed under an expanded search result */
+.section-list {
+  margin: 14px 4px 4px;
+  font-size: 0.8rem;
+}
+
+.section-list ul {
+  /* PPStyles.css styles every ul globally */
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.section-list > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-list li {
+  margin-bottom: 0;
+}
+
+.section-card {
+  padding: 12px 14px;
+  border: 1px solid var(--csu-line);
+  border-radius: 12px;
+  background-color: var(--csu-surface);
+}
+
+.section-card.selected {
+  border-color: var(--csu-blue);
+  box-shadow: 0 0 0 1px var(--csu-blue);
+}
+
+.section-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.section-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.seat-pill {
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.seat-pill.open {
+  background-color: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.seat-pill.wait {
+  background-color: var(--csu-ok-tint);
+  color: var(--csu-ok);
+}
+
+.seat-pill.unknown {
+  background-color: var(--csu-subtle);
+  color: var(--csu-muted);
+}
+
+.section-times {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.section-times li {
+  display: grid;
+  grid-template-columns: 3.2rem auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.section-times b {
+  font-weight: 700;
+}
+
+.section-room {
+  color: var(--csu-muted);
+  text-align: right;
+}
+
+.section-online {
+  color: var(--csu-muted);
+}
+
+.section-card .instructor-ratings li {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}

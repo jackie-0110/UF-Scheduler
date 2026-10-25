@@ -2,6 +2,7 @@ import React from "react";
 import { Course, Section } from "../CourseUI/CourseTypes";
 import ColorHash from "color-hash";
 import { IoClose } from "react-icons/io5";
+import { PiEyeBold, PiEyeSlashBold } from "react-icons/pi";
 import "./LikedSelectedStyles.css";
 
 interface LikedSelectedCoursesProps {
@@ -77,6 +78,18 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
     setLoaded(true);
   };
 
+  const toggleHidden = (e: React.MouseEvent, course: Course) => {
+    e.stopPropagation();
+    setSelectedCourses((prev) =>
+      prev.map((c) =>
+        c.code === course.code && c.name === course.name
+          ? { ...c, excludedFromSchedule: !c.excludedFromSchedule }
+          : c
+      )
+    );
+    setLoaded(true);
+  };
+
   const handleRemoveAppointment = (e: React.MouseEvent, appointment: any) => {
     e.stopPropagation(); // Prevent triggering the parent onClick
     setCustomAppointments((prevAppointments) =>
@@ -107,12 +120,19 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
         return (
           <div
             key={`${course.code}|${course.name}`}
-            className="course-chip fade-in"
-            style={{
-              ...getCourseBackgroundColor(course),
-              color: getContrastYIQ(color),
-            }}
-            title={details}
+            className={`course-chip fade-in${
+              course.excludedFromSchedule ? " hidden-course" : ""
+            }`}
+            style={
+              course.excludedFromSchedule
+                ? { ...getCourseBackgroundColor(course), backgroundColor: "transparent", borderColor: color }
+                : { ...getCourseBackgroundColor(course), color: getContrastYIQ(color) }
+            }
+            title={
+              course.excludedFromSchedule
+                ? `${details} · hidden from schedules`
+                : details
+            }
           >
             <button
               type="button"
@@ -126,10 +146,33 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
                   : ""}
               </strong>
               <span>
-                {course.sections[0].credits} cr
+                {course.excludedFromSchedule ? "hidden · " : ""}
+                {course.sections[0]?.credits ?? 0} cr
                 {selectedSection ? ` · #${selectedSection.classNumber}` : ""}
                 {course.inPerson ? " · in-person" : ""}
               </span>
+            </button>
+            <button
+              type="button"
+              className="course-chip-remove"
+              onClick={(e) => toggleHidden(e, course)}
+              aria-pressed={!!course.excludedFromSchedule}
+              aria-label={
+                course.excludedFromSchedule
+                  ? `Include ${code} in schedules`
+                  : `Hide ${code} from schedules`
+              }
+              title={
+                course.excludedFromSchedule
+                  ? "Include in schedules"
+                  : "Hide from schedules without removing it"
+              }
+            >
+              {course.excludedFromSchedule ? (
+                <PiEyeSlashBold size={14} />
+              ) : (
+                <PiEyeBold size={14} />
+              )}
             </button>
             <button
               type="button"

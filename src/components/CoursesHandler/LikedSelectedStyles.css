@@ -64,3 +64,25 @@
 .course-chip-remove:hover {
   background-color: rgba(0, 0, 0, 0.2);
 }
+
+/* Kept in the list but left out of schedules */
+.course-chip {
+  border: 1.5px solid transparent;
+}
+
+.course-chip.hidden-course {
+  border-style: dashed;
+  color: var(--csu-muted);
+}
+
+.course-chip.hidden-course strong {
+  color: var(--csu-ink);
+}
+
+.course-chip.hidden-course .course-chip-remove:hover {
+  background-color: var(--csu-subtle);
+}
+
+.course-chip-remove + .course-chip-remove {
+  margin-left: -2px;
+}

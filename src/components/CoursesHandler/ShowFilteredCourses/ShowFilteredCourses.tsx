@@ -13,6 +13,8 @@ import {
   PiPencilBold
 } from "react-icons/pi";
 import "./ShowFilteredCourses.css";
+import { getCourseTags } from "../../CourseUI/courseTags";
+import PrerequisiteList from "../../CourseUI/PrerequisiteList";
 import { API_URLS, BACKEND_URLS, getAuthHeaders } from "../../../config/api";
 import { useAuth } from "react-oidc-context";
 
@@ -25,6 +27,9 @@ interface ShowFilteredCoursesProps {
   year: string;
   searchTrigger: boolean;
   selectedValue: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  setDebouncedSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  setSearchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const groupByCourseCodeAndName = (courses: Course[]) => {
@@ -46,7 +51,10 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   term,
   year,
   searchTrigger,
-  selectedValue
+  selectedValue,
+  setSearchTerm,
+  setDebouncedSearchTerm,
+  setSearchTrigger,
 }) => {
   const auth = useAuth();
   const [openCourseCode, setOpenCourseCode] = useState<string[] | null>();
@@ -63,6 +71,12 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   const [editingCredits, setEditingCredits] = useState<string | null>(null);
   const [noCoursesFound, setNoCoursesFound] = useState<boolean>(false);
   const [searchFailed, setSearchFailed] = useState<boolean>(false);
+
+  const searchFor = (code: string) => {
+    setSearchTerm(code);
+    setDebouncedSearchTerm(code);
+    setSearchTrigger((prev) => !prev);
+  };
 
   const handleCourseCardClick = (event: React.MouseEvent, course: Course) => {
     toggleCourseDropdown(`${course.code}|${course.name}`);
@@ -120,6 +134,8 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
     const nonOnlineSections = course.sections.filter(
       (section) => section.meetTimes && section.meetTimes.length > 0
     );
+    // An all-online course would be added with no sections at all
+    if (nonOnlineSections.length === 0) return;
 
     const selectedNonOnline = {
       ...course,
@@ -231,7 +247,7 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
           setNoCoursesFound(false);
           setFilteredCourses(response.data.map((course: Course) => ({
             ...course,
-            creditsEditable: course.sections[0].credits === "VAR"
+            creditsEditable: course.sections[0]?.credits === "VAR"
           })));
         }
         else {
@@ -369,6 +385,18 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                       <div className="text-sm font-light text-gray-600 mx-1 line-clamp-2 overflow-ellipsis overflow-hidden">
                         {firstCourse.name}
                       </div>
+                      {getCourseTags(firstCourse).length > 0 && (
+                        <div className="course-tags" aria-label="Designations">
+                          {getCourseTags(firstCourse).map((tag) => (
+                            <span
+                              key={tag}
+                              className={`course-tag${tag.startsWith("Quest") ? " quest" : ""}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="course-actions">
                         <button
                           type="button"
@@ -392,11 +420,18 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                           <button
                             type="button"
                             className="course-action"
+                            disabled={
+                              !firstCourse.sections.some((s) => s.meetTimes?.length)
+                            }
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleNonOnlineSections(firstCourse);
                             }}
-                            title="Add this course, leaving out online sections"
+                            title={
+                              firstCourse.sections.some((s) => s.meetTimes?.length)
+                                ? "Add this course, leaving out online sections"
+                                : "Every section of this course is online"
+                            }
                           >
                             <PiVideoCameraSlashBold />
                             In-person only
@@ -421,25 +456,22 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                     </div>
                     {isOpen && (
                       <div>
-                        <div className={`mt-2 mb-0 mx-1 text-sm text-gray-700 `}>
-                          <hr
-                            style={{
-                              border: "none",
-                              borderTop: "2px solid var(--csu-line)",
-                              marginBottom: "4px",
-                            }}
-                          />
-                          <strong>Description: </strong>
-                          {firstCourse.description
-                            ? firstCourse.description.replace("(P)", "").trim()
-                            : "N/A"}
-                          <br />
-                          <strong> Prerequisites: </strong>
-                          {firstCourse.prerequisites
-                            ? firstCourse.prerequisites
-                                .replace("Prereq: ", "")
-                                .trim()
-                            : "N/A"}
+                        <div className="result-detail">
+                          <section>
+                            <span className="csu-label">Description</span>
+                            <p>
+                              {firstCourse.description
+                                ? firstCourse.description.replace("(P)", "").trim()
+                                : "No description listed."}
+                            </p>
+                          </section>
+                          <section>
+                            <span className="csu-label">Prerequisites</span>
+                            <PrerequisiteList
+                              prerequisites={firstCourse.prerequisites}
+                              onCourseCode={searchFor}
+                            />
+                          </section>
                         </div>
                         <div>
                           <div className="w-[100%] opacity-100 visible transition-opacity my-1">

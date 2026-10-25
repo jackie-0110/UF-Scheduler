@@ -1,7 +1,8 @@
 import React from "react";
-import { Course, Section, websiteURL } from "../CourseTypes";
-import { courseUIClasses } from "../CourseUIClasses";
+import { Course, Section } from "../CourseTypes";
 import { BiSolidLockOpen, BiSolidLockAlt } from "react-icons/bi";
+import InstructorRatings from "../InstructorRatings";
+import "./CourseDropdown.css";
 
 interface CourseDropdownProps {
   course: Course;
@@ -23,8 +24,6 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
   selectedCourses,
   setSelectedCourses,
 }) => {
-  const { listItem, content } = courseUIClasses;
-
   const waitListAvailable = (section: Section) => {
     if (section.waitList.total === section.waitList.cap) {
       return section.waitList.total + "/" + section.waitList.cap + " (Full)";
@@ -107,169 +106,79 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
     setSelectedCourses(updatedCourses);
   };  
 
-  const getRatingColor = (rating: number | null): string => {
-    if (rating === null) return "text-gray-700"; // Default
-    if (rating <= 2) return "text-red-600"; // Red
-    if (rating < 4) return "text-amber-600"; // Yellow
-    return "text-green-600"; // Green
-  };
-
-  const getDifficultyColor = (difficulty: number | null): string => {
-    if (difficulty === null) return "text-gray-700"; // Default
-    if (difficulty <= 2) return "text-green-600"; // Green
-    if (difficulty < 4) return "text-amber-600"; // Yellow
-    return "text-red-600"; // Red
-  };
-
-  const renderSectionInformation = (section: Section) => {
-    return (
-      <div>
-        {/* Star Icon based on section selected status */}
-
-        <div className="text-gray-700">
-          {section.instructors.length > 1 ? (
-            <strong>Instructors: </strong>
-          ) : (
-            <strong>Instructor: </strong>
-          )}
-          {section.instructors.map((instructor, index) => (
-            <div
-              key={index}
-              className="text-gray-700 flex justify-between"
-            >
-              <div className="instructor-name ml-2 flex-1">
-                {instructor.name}
-              </div>
-              {instructor.avgRating != null && (
-                <>
-                  <div className="instructor-rating flex-1">
-                    {"Rating: "}
-                    <a
-                      className={`font-bold whitespace-nowrap ${getRatingColor(
-                        instructor.avgRating
-                      )} underline`}
-                      href={`${websiteURL}${instructor.professorID}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {instructor.avgRating.toFixed(1)}/5
-                    </a>
-                  </div>
-                  <div className="instructor-difficulty flex-1">
-                    {"Difficulty: "}
-                    <a
-                      className={`font-bold whitespace-nowrap ${getDifficultyColor(
-                        instructor.avgDifficulty
-                      )} underline`}
-                      href={`${websiteURL}${instructor.professorID}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {instructor.avgDifficulty.toFixed(1)}/5
-                    </a>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Meeting Times */}
-        <div className="text-gray-700">
-          <strong>Meeting Times:</strong>{" "}
-          {section.meetTimes.length > 0 ? (
-            section.meetTimes.map((meetingTime) => (
-              <div
-                key={
-                  meetingTime.meetDays +
-                  meetingTime.meetTimeBegin +
-                  meetingTime.meetTimeEnd
-                }
-                className={`ml-2 text-gray-700`}
-              >
-                <strong>{meetingTime.meetDays.join(", ")}: </strong> &nbsp;{" "}
-                {convertTo12HourFormat(meetingTime.meetTimeBegin)} -{" "}
-                {convertTo12HourFormat(meetingTime.meetTimeEnd)} @{" "}
-                {meetingTime.meetBuilding} {meetingTime.meetRoom}
-              </div>
-            ))
-          ) : (
-            <span className={`${content} text-gray-700`}>
-              N/A
-            </span>
-          )}
-        </div>
-
-        {/* Render other section details if needed */}
-      </div>
-    );
+  const seatStatus = (section: Section) => {
+    const { total, cap } = section.waitList;
+    if (!total && cap > 0) return { tone: "open", text: "Open seats" };
+    if (!total && !cap) return { tone: "unknown", text: "Seats unknown" };
+    return { tone: "wait", text: `Wait list ${waitListAvailable(section)}` };
   };
 
   return (
-    <div
-      className={`space-y-2 text-sm`}
-    >
-      <div className="list-none">
+    <div className="section-list">
+      <span className="csu-label">Sections</span>
+      <ul>
         {course.sections
           .sort((a, b) => a.waitList.total - b.waitList.total)
-          .map((section, index) => (
-            <li
-              key={index}
-              className="my-2 rounded-lg bg-neutral-100 border border-neutral-200"
-            >
-              <div className="space-y-2 p-2">
-                <div className="flex flex-wrap gap-2 justify-between items-center">
-                  <div className="font-bold text-gray-700 flex items-center">
-                    Class # {section.classNumber} -{" "}
-                    {!section.waitList.total && section.waitList.cap > 0 ? (
-                      <span className="text-green-600 ml-1">Open Seats</span>
-                    ) : !section.waitList.total && !section.waitList.cap ? (
-                      <span className="text-red-600 ml-1">Seats Unknown</span>
-                    ) : (
-                      section.waitList.total &&
-                      section.waitList.cap && (
-                        <span className="text-accent-1 ml-1">
-                          Wait List: {waitListAvailable(section)}
-                        </span>
-                      )
-                    )}
+          .map((section, index) => {
+            const selected = isSectionSelected(section);
+            const seats = seatStatus(section);
+            return (
+              <li
+                key={index}
+                className={`section-card${selected ? " selected" : ""}`}
+              >
+                <div className="section-card-head">
+                  <div className="section-card-title">
+                    <strong>Class #{section.classNumber}</strong>
+                    <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
                   </div>
-                  {/* Star Icon based on section selected status */}
                   <button
                     type="button"
-                    className={`course-action${
-                      isSectionSelected(section) ? " active" : ""
-                    }`}
-                    aria-pressed={isSectionSelected(section)}
+                    className={`course-action${selected ? " active" : ""}`}
+                    aria-pressed={selected}
                     onClick={() => toggleSectionSelected(section)}
                     title={
-                      isSectionSelected(section)
+                      selected
                         ? "Go back to considering every section"
                         : "Build schedules with only this section of the course"
                     }
                   >
-                    {isSectionSelected(section) ? (
-                      <BiSolidLockAlt />
-                    ) : (
-                      <BiSolidLockOpen />
-                    )}
-                    {isSectionSelected(section)
-                      ? "Using this section"
-                      : "Use only this section"}
+                    {selected ? <BiSolidLockAlt /> : <BiSolidLockOpen />}
+                    {selected ? "Using this section" : "Use only this section"}
                   </button>
                 </div>
-                {renderSectionInformation(section)}
-              </div>
-            </li>
-          ))}
-        {course.sections.length === 0 && (
-          <div
-            className={`${listItem} ${content} text-gray-700`}
-          >
-            No sections found.
-          </div>
-        )}
-      </div>
+                {section.meetTimes.length > 0 ? (
+                  <ul className="section-times">
+                    {section.meetTimes.map((meetingTime) => (
+                      <li
+                        key={
+                          meetingTime.meetDays +
+                          meetingTime.meetTimeBegin +
+                          meetingTime.meetTimeEnd
+                        }
+                      >
+                        <b>{meetingTime.meetDays.join(" ")}</b>
+                        <span>
+                          {convertTo12HourFormat(meetingTime.meetTimeBegin)} –{" "}
+                          {convertTo12HourFormat(meetingTime.meetTimeEnd)}
+                        </span>
+                        <span className="section-room">
+                          {meetingTime.meetBuilding} {meetingTime.meetRoom}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="section-online">No weekly meeting time (online or TBA)</p>
+                )}
+                <InstructorRatings instructors={section.instructors} />
+              </li>
+            );
+          })}
+      </ul>
+      {course.sections.length === 0 && (
+        <p className="section-online">No sections found.</p>
+      )}
     </div>
   );
 };

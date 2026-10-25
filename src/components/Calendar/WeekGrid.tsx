@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { Instructor } from "../CourseUI/CourseTypes";
+import InstructorRatings from "../CourseUI/InstructorRatings";
 
 export type GridAppointment = {
   id: string;
@@ -11,6 +13,7 @@ export type GridAppointment = {
   classNumber?: string;
   location?: string;
   finalExam?: string;
+  instructors?: Instructor[];
 };
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -37,7 +40,7 @@ const formatHour = (hour: number) =>
   `${hour % 12 === 0 ? 12 : hour % 12} ${hour >= 12 ? "PM" : "AM"}`;
 
 // Black or white text, whichever reads better on the course color
-const contrastText = (hex: string) => {
+export const contrastText = (hex: string) => {
   const r = parseInt(hex.substring(1, 3), 16);
   const g = parseInt(hex.substring(3, 5), 16);
   const b = parseInt(hex.substring(5, 7), 16);
@@ -210,6 +213,7 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
                             </>
                           )}
                         </dl>
+                        <InstructorRatings instructors={event.instructors} />
                       </div>
                     )}
                   </div>

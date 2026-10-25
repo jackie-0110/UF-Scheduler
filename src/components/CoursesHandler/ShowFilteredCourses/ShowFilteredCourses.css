@@ -63,6 +63,77 @@ input[type=number] {
 }
 
 /* Labelled actions on each course card */
+.course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 4px 0;
+}
+
+.course-tag {
+  padding: 2px 9px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
+}
+
+.course-tag.quest {
+  background-color: var(--csu-orange-tint);
+  color: var(--csu-orange-ink);
+}
+
+/* Description and prerequisites when a result is expanded */
+.result-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 14px 4px 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--csu-line);
+  font-size: 0.85rem;
+}
+
+.result-detail p {
+  line-height: 1.5;
+  color: #374151;
+}
+
+.prereq-list {
+  /* PPStyles.css styles every ul globally */
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prereq-list li {
+  margin-bottom: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--csu-line);
+  /* long requirements wrap, so not fully round */
+  border-radius: 14px;
+  line-height: 1.4;
+  color: #374151;
+}
+
+.prereq-code {
+  font-weight: 700;
+  color: var(--csu-blue);
+}
+
+.prereq-code:hover {
+  text-decoration: underline;
+}
+
+.prereq-none {
+  color: var(--csu-muted);
+}
+
 .course-actions {
   display: flex;
   flex-wrap: wrap;
@@ -88,6 +159,13 @@ input[type=number] {
 .course-action:hover {
   border-color: var(--csu-blue);
   color: var(--csu-blue);
+}
+
+.course-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--csu-line);
+  color: var(--csu-muted);
 }
 
 .course-action.primary {
@@ -117,3 +195,4 @@ input[type=number] {
   background-color: var(--csu-blue-tint);
   color: var(--csu-blue);
 }
+

@@ -29,6 +29,9 @@ export type Section = {
   courseCode: string;
   startDate: string;
   endDate: string;
+  genEd?: string[]; // e.g. ["Humanities", "International"]
+  quest?: string[]; // e.g. ["QUEST 1"]
+  grWriting?: string; // writing requirement in thousands of words, "N" for none
   firstDay?: string; // Added for ICS calendar generation with MM/DD/YYYY format
   lastDay?: string; // Added for ICS calendar generation with MM/DD/YYYY format
 };
@@ -48,6 +51,7 @@ export type Course = {
   sections: Section[];
   inPerson: boolean;
   creditsEditable: boolean;
+  excludedFromSchedule?: boolean; // kept in the list but left out of schedules and credits
 };
 
 export const websiteURL: string = "https://www.ratemyprofessors.com/professor/";

@@ -1,11 +1,13 @@
 import { Course, Section } from "../CourseUI/CourseTypes";
 import "./CalendarStyle.css";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoAlertCircleOutline } from "react-icons/io5";
 import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
 import WeekGrid from "./WeekGrid";
+import NoMeetingStrip from "./NoMeetingStrip";
+import { findClashPairs } from "./calendarConflictUtils";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -330,7 +332,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
   // Step 1: Identify selected sections
   const getAllSelectedSections = () => {
-    return selectedCourses.map((course) => {
+    return selectedCourses
+      .filter((course) => !course.excludedFromSchedule)
+      .map((course) => {
       const selectedSection = course.sections.find(
         (section) => section.selected === true
       );
@@ -442,6 +446,7 @@ const Calendar: React.FC<CalendarProps> = ({
               courseName: section.courseCode ? section.courseName : undefined,
               color,
               finalExam: section.finalExam,
+              instructors: section.instructors,
               location: `${meetBuilding} ${meetRoom}`,
               firstDay: section.startDate,
               lastDay: section.endDate,
@@ -528,21 +533,13 @@ const Calendar: React.FC<CalendarProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const getOnlineMessage = (combination: Section[]) => {
-    const onlineSectionNames = combination
-      .filter((section) => !section.meetTimes || section.meetTimes.length === 0)
-      .map((section) => section.courseName);
-    if (onlineSectionNames.length > 1) {
-      return `${onlineSectionNames
-        .slice(0, -1)
-        .join(", ")} and ${onlineSectionNames.slice(-1)} are online`;
-    }
-    return onlineSectionNames.length === 1
-      ? `${onlineSectionNames[0]} is online`
-      : "";
-  };
-
   const canSort = allCombinations.count <= SORT_LIMIT;
+
+  // Only worth computing when nothing fits
+  const clashPairs = useMemo(
+    () => (currentCalendars.length === 0 ? findClashPairs(allCombinations.lists) : []),
+    [currentCalendars.length, allCombinations]
+  );
 
   // Ranks combination numbers by a key built from each section's earliest
   // start and latest end, without decoding the combinations themselves
@@ -622,7 +619,9 @@ const Calendar: React.FC<CalendarProps> = ({
     filters.endBy !== null ||
     filters.maxGap !== null ||
     filters.daysOff.length > 0;
-  const hasCourses = selectedCourses.length > 0 || customAppointments.length > 0;
+  const hasCourses =
+    selectedCourses.some((course) => !course.excludedFromSchedule) ||
+    customAppointments.length > 0;
   const hourOptions = (hours: number[]) =>
     hours.map((hour) => (
       <option key={hour} value={hour * 60}>
@@ -635,7 +634,11 @@ const Calendar: React.FC<CalendarProps> = ({
     ? currentPosition - (selectedCalendar ? 1 : 0) + 1
     : 0;
   const optionTotal = `${otherOptions.length}${hasMoreItems ? "+" : ""}`;
-  const onlineMessage = current ? getOnlineMessage(current.combination) : "";
+  const noMeetingSections = current
+    ? current.combination.filter(
+        (section) => section.courseCode && !section.meetTimes?.length
+      )
+    : [];
 
   return (
     <div className="calendar-container-2">
@@ -799,9 +802,6 @@ const Calendar: React.FC<CalendarProps> = ({
             ) : (
               <span className="schedule-card-title">Your week</span>
             )}
-            {onlineMessage && (
-              <span className="online-section-message">{onlineMessage}</span>
-            )}
             {current && current.appointments.length > 0 && (
               <div className="schedule-card-actions">
                 <button
@@ -833,7 +833,10 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
           {!current && hasCourses ? (
             <div className="schedule-empty">
-              <strong>No schedule fits.</strong>
+              <span className="schedule-empty-icon" aria-hidden>
+                <IoAlertCircleOutline size={26} />
+              </span>
+              <strong>No schedule fits</strong>
               {filtersActive ? (
                 <>
                   <span>Your filters rule out every combination of sections.</span>
@@ -845,6 +848,31 @@ const Calendar: React.FC<CalendarProps> = ({
                     Clear filters
                   </button>
                 </>
+              ) : clashPairs.length > 0 ? (
+                <>
+                  <span>
+                    {clashPairs.length === 1
+                      ? "These two courses meet at the same time in every section."
+                      : "Each pair below meets at the same time in every section."}
+                  </span>
+                  <div className="schedule-clash">
+                    <span className="csu-label">Always clash</span>
+                    <ul>
+                      {clashPairs.map(({ a, b }) => (
+                        <li key={`${a}|${b}`}>
+                          <span className="clash-code">{a}</span>
+                          <span className="clash-with">and</span>
+                          <span className="clash-code">{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <span className="schedule-empty-hint">
+                    {clashPairs.length === 1
+                      ? "Remove one of them, or unlock a section you chose."
+                      : "Remove one from each pair, or unlock a section you chose."}
+                  </span>
+                </>
               ) : (
                 <span>
                   These courses have no combination of sections without a time
@@ -853,7 +881,10 @@ const Calendar: React.FC<CalendarProps> = ({
               )}
             </div>
           ) : (
-            <WeekGrid appointments={current ? current.appointments : []} />
+            <>
+              <NoMeetingStrip sections={noMeetingSections} />
+              <WeekGrid appointments={current ? current.appointments : []} />
+            </>
           )}
         </div>
       </div>
