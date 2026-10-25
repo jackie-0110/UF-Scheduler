@@ -134,6 +134,8 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
     const nonOnlineSections = course.sections.filter(
       (section) => section.meetTimes && section.meetTimes.length > 0
     );
+    // An all-online course would be added with no sections at all
+    if (nonOnlineSections.length === 0) return;
 
     const selectedNonOnline = {
       ...course,
@@ -245,7 +247,7 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
           setNoCoursesFound(false);
           setFilteredCourses(response.data.map((course: Course) => ({
             ...course,
-            creditsEditable: course.sections[0].credits === "VAR"
+            creditsEditable: course.sections[0]?.credits === "VAR"
           })));
         }
         else {
@@ -418,11 +420,18 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                           <button
                             type="button"
                             className="course-action"
+                            disabled={
+                              !firstCourse.sections.some((s) => s.meetTimes?.length)
+                            }
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleNonOnlineSections(firstCourse);
                             }}
-                            title="Add this course, leaving out online sections"
+                            title={
+                              firstCourse.sections.some((s) => s.meetTimes?.length)
+                                ? "Add this course, leaving out online sections"
+                                : "Every section of this course is online"
+                            }
                           >
                             <PiVideoCameraSlashBold />
                             In-person only

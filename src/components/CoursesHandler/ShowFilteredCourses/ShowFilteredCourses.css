@@ -147,6 +147,13 @@ input[type=number] {
   color: var(--csu-blue);
 }
 
+.course-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--csu-line);
+  color: var(--csu-muted);
+}
+
 .course-action.primary {
   border-color: var(--csu-blue);
   background-color: var(--csu-blue);
