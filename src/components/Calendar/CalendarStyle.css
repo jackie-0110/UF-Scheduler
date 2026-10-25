@@ -280,6 +280,10 @@
 }
 
 .schedule-clash-list {
+  /* PPStyles.css styles every ul globally */
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -490,6 +494,10 @@
 
 /* Instructor names with RateMyProfessors scores (popovers and the online strip) */
 .instructor-ratings {
+  /* PPStyles.css styles every ul globally */
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -622,4 +630,12 @@
   .schedule-card-title {
     min-width: 0;
   }
+}
+
+.schedule-clash-list li {
+  margin-bottom: 0;
+}
+
+.instructor-ratings li {
+  margin-bottom: 0;
 }
