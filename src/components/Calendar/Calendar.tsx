@@ -858,7 +858,11 @@ const Calendar: React.FC<CalendarProps> = ({
                       </li>
                     ))}
                   </ul>
-                  <span>Remove one of each pair, or unlock a section you fixed.</span>
+                  <span>
+                    {clashPairs.length === 1
+                      ? "Remove one of them, or unlock a section you fixed."
+                      : "Remove one from each pair, or unlock a section you fixed."}
+                  </span>
                 </>
               ) : (
                 <span>
