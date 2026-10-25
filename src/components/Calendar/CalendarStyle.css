@@ -220,6 +220,25 @@
   color: var(--csu-ink);
 }
 
+.schedule-clash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.schedule-clash-list li {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background-color: #ffe4d6;
+  color: #aa3908;
+}
+
+.schedule-clash-list strong {
+  font-size: inherit;
+  color: inherit;
+}
+
 /* ── Week grid ── */
 
 .week-grid {

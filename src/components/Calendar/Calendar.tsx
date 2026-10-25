@@ -6,6 +6,7 @@ import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
 import WeekGrid from "./WeekGrid";
+import { findClashPairs } from "./calendarConflictUtils";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -544,6 +545,12 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const canSort = allCombinations.count <= SORT_LIMIT;
 
+  // Only worth computing when nothing fits
+  const clashPairs = useMemo(
+    () => (currentCalendars.length === 0 ? findClashPairs(allCombinations.lists) : []),
+    [currentCalendars.length, allCombinations]
+  );
+
   // Ranks combination numbers by a key built from each section's earliest
   // start and latest end, without decoding the combinations themselves
   const sortCombinations = (value: string) => {
@@ -844,6 +851,21 @@ const Calendar: React.FC<CalendarProps> = ({
                   >
                     Clear filters
                   </button>
+                </>
+              ) : clashPairs.length > 0 ? (
+                <>
+                  <span>
+                    {clashPairs.length === 1 ? "This pair always clashes" : "These pairs always clash"}
+                    , whichever sections you pick:
+                  </span>
+                  <ul className="schedule-clash-list">
+                    {clashPairs.map(({ a, b }) => (
+                      <li key={`${a}|${b}`}>
+                        <strong>{a}</strong> and <strong>{b}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                  <span>Remove one of each pair, or unlock a section you fixed.</span>
                 </>
               ) : (
                 <span>
