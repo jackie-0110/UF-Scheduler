@@ -263,27 +263,68 @@
   color: var(--csu-ink);
 }
 
-.schedule-clash-list {
+.schedule-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 9999px;
+  background-color: var(--csu-orange-tint);
+  color: var(--csu-orange);
+}
+
+.schedule-empty-hint {
+  font-size: 0.8rem;
+}
+
+.schedule-clash {
+  width: min(100%, 340px);
+  margin: 6px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: var(--csu-surface);
+  box-shadow: var(--csu-shadow);
+  text-align: left;
+}
+
+.schedule-clash ul {
   /* PPStyles.css styles every ul globally */
   list-style: none;
   padding-left: 0;
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 2px 0;
 }
 
-.schedule-clash-list li {
-  padding: 4px 12px;
+.schedule-clash li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--csu-line);
+}
+
+.schedule-clash li:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.clash-code {
+  padding: 2px 10px;
   border-radius: 9999px;
-  background-color: #ffe4d6;
-  color: #aa3908;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
 }
 
-.schedule-clash-list strong {
-  font-size: inherit;
-  color: inherit;
+.clash-with {
+  font-size: 0.75rem;
+  color: var(--csu-muted);
 }
 
 /* ── Week grid ── */
@@ -637,7 +678,4 @@ a.instructor-scores:hover .score {
   }
 }
 
-.schedule-clash-list li {
-  margin-bottom: 0;
-}
 

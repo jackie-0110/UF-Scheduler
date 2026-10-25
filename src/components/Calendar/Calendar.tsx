@@ -1,7 +1,7 @@
 import { Course, Section } from "../CourseUI/CourseTypes";
 import "./CalendarStyle.css";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoAlertCircleOutline } from "react-icons/io5";
 import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
@@ -833,7 +833,10 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
           {!current && hasCourses ? (
             <div className="schedule-empty">
-              <strong>No schedule fits.</strong>
+              <span className="schedule-empty-icon" aria-hidden>
+                <IoAlertCircleOutline size={26} />
+              </span>
+              <strong>No schedule fits</strong>
               {filtersActive ? (
                 <>
                   <span>Your filters rule out every combination of sections.</span>
@@ -848,20 +851,26 @@ const Calendar: React.FC<CalendarProps> = ({
               ) : clashPairs.length > 0 ? (
                 <>
                   <span>
-                    {clashPairs.length === 1 ? "This pair always clashes" : "These pairs always clash"}
-                    , whichever sections you pick:
-                  </span>
-                  <ul className="schedule-clash-list">
-                    {clashPairs.map(({ a, b }) => (
-                      <li key={`${a}|${b}`}>
-                        <strong>{a}</strong> and <strong>{b}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                  <span>
                     {clashPairs.length === 1
-                      ? "Remove one of them, or unlock a section you fixed."
-                      : "Remove one from each pair, or unlock a section you fixed."}
+                      ? "These two courses meet at the same time in every section."
+                      : "Each pair below meets at the same time in every section."}
+                  </span>
+                  <div className="schedule-clash">
+                    <span className="csu-label">Always clash</span>
+                    <ul>
+                      {clashPairs.map(({ a, b }) => (
+                        <li key={`${a}|${b}`}>
+                          <span className="clash-code">{a}</span>
+                          <span className="clash-with">and</span>
+                          <span className="clash-code">{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <span className="schedule-empty-hint">
+                    {clashPairs.length === 1
+                      ? "Remove one of them, or unlock a section you chose."
+                      : "Remove one from each pair, or unlock a section you chose."}
                   </span>
                 </>
               ) : (
