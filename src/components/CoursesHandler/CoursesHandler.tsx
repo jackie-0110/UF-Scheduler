@@ -88,6 +88,9 @@ const CoursesHandler: React.FC<CoursesHandlerProps> = (
         year={year}
         searchTrigger={searchTrigger}
         selectedValue={selectedValue}
+        setSearchTerm={setSearchTerm}
+        setDebouncedSearchTerm={setDebouncedSearchTerm}
+        setSearchTrigger={setSearchTrigger}
       />
     </div>
   );

@@ -63,6 +63,42 @@ input[type=number] {
 }
 
 /* Labelled actions on each course card */
+.prereq-block {
+  margin-top: 8px;
+}
+
+.prereq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.prereq-list li {
+  padding: 4px 8px;
+  border-left: 3px solid var(--csu-orange);
+  border-radius: 0 6px 6px 0;
+  background-color: var(--csu-subtle);
+}
+
+.prereq-code {
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--csu-blue);
+  background-color: var(--csu-blue-tint);
+}
+
+.prereq-code:hover {
+  text-decoration: underline;
+}
+
+.prereq-none {
+  display: block;
+  margin-top: 2px;
+  color: var(--csu-muted);
+}
+
 .course-tags {
   display: flex;
   flex-wrap: wrap;

@@ -14,6 +14,7 @@ import {
 } from "react-icons/pi";
 import "./ShowFilteredCourses.css";
 import { getCourseTags } from "../../CourseUI/courseTags";
+import PrerequisiteList from "../../CourseUI/PrerequisiteList";
 import { API_URLS, BACKEND_URLS, getAuthHeaders } from "../../../config/api";
 import { useAuth } from "react-oidc-context";
 
@@ -26,6 +27,9 @@ interface ShowFilteredCoursesProps {
   year: string;
   searchTrigger: boolean;
   selectedValue: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  setDebouncedSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  setSearchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const groupByCourseCodeAndName = (courses: Course[]) => {
@@ -47,7 +51,10 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   term,
   year,
   searchTrigger,
-  selectedValue
+  selectedValue,
+  setSearchTerm,
+  setDebouncedSearchTerm,
+  setSearchTrigger,
 }) => {
   const auth = useAuth();
   const [openCourseCode, setOpenCourseCode] = useState<string[] | null>();
@@ -64,6 +71,12 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
   const [editingCredits, setEditingCredits] = useState<string | null>(null);
   const [noCoursesFound, setNoCoursesFound] = useState<boolean>(false);
   const [searchFailed, setSearchFailed] = useState<boolean>(false);
+
+  const searchFor = (code: string) => {
+    setSearchTerm(code);
+    setDebouncedSearchTerm(code);
+    setSearchTrigger((prev) => !prev);
+  };
 
   const handleCourseCardClick = (event: React.MouseEvent, course: Course) => {
     toggleCourseDropdown(`${course.code}|${course.name}`);
@@ -446,13 +459,13 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                           {firstCourse.description
                             ? firstCourse.description.replace("(P)", "").trim()
                             : "N/A"}
-                          <br />
-                          <strong> Prerequisites: </strong>
-                          {firstCourse.prerequisites
-                            ? firstCourse.prerequisites
-                                .replace("Prereq: ", "")
-                                .trim()
-                            : "N/A"}
+                          <div className="prereq-block">
+                            <strong>Prerequisites</strong>
+                            <PrerequisiteList
+                              prerequisites={firstCourse.prerequisites}
+                              onCourseCode={searchFor}
+                            />
+                          </div>
                         </div>
                         <div>
                           <div className="w-[100%] opacity-100 visible transition-opacity my-1">
