@@ -13,6 +13,7 @@ import {
   PiPencilBold
 } from "react-icons/pi";
 import "./ShowFilteredCourses.css";
+import { getCourseTags } from "../../CourseUI/courseTags";
 import { API_URLS, BACKEND_URLS, getAuthHeaders } from "../../../config/api";
 import { useAuth } from "react-oidc-context";
 
@@ -369,6 +370,18 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                       <div className="text-sm font-light text-gray-600 mx-1 line-clamp-2 overflow-ellipsis overflow-hidden">
                         {firstCourse.name}
                       </div>
+                      {getCourseTags(firstCourse).length > 0 && (
+                        <div className="course-tags" aria-label="Designations">
+                          {getCourseTags(firstCourse).map((tag) => (
+                            <span
+                              key={tag}
+                              className={`course-tag${tag.startsWith("Quest") ? " quest" : ""}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="course-actions">
                         <button
                           type="button"

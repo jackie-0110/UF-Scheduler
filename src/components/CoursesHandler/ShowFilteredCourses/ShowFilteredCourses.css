@@ -63,6 +63,27 @@ input[type=number] {
 }
 
 /* Labelled actions on each course card */
+.course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 4px 0;
+}
+
+.course-tag {
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
+}
+
+.course-tag.quest {
+  background-color: #ffe4d6;
+  color: #aa3908;
+}
+
 .course-actions {
   display: flex;
   flex-wrap: wrap;
