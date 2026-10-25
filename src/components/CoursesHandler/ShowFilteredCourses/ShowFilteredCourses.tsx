@@ -456,25 +456,22 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                     </div>
                     {isOpen && (
                       <div>
-                        <div className={`mt-2 mb-0 mx-1 text-sm text-gray-700 `}>
-                          <hr
-                            style={{
-                              border: "none",
-                              borderTop: "2px solid var(--csu-line)",
-                              marginBottom: "4px",
-                            }}
-                          />
-                          <strong>Description: </strong>
-                          {firstCourse.description
-                            ? firstCourse.description.replace("(P)", "").trim()
-                            : "N/A"}
-                          <div className="prereq-block">
-                            <strong>Prerequisites</strong>
+                        <div className="course-detail">
+                          <section>
+                            <span className="csu-label">Description</span>
+                            <p>
+                              {firstCourse.description
+                                ? firstCourse.description.replace("(P)", "").trim()
+                                : "No description listed."}
+                            </p>
+                          </section>
+                          <section>
+                            <span className="csu-label">Prerequisites</span>
                             <PrerequisiteList
                               prerequisites={firstCourse.prerequisites}
                               onCourseCode={searchFor}
                             />
-                          </div>
+                          </section>
                         </div>
                         <div>
                           <div className="w-[100%] opacity-100 visible transition-opacity my-1">

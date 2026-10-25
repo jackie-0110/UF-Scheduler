@@ -63,8 +63,42 @@ input[type=number] {
 }
 
 /* Labelled actions on each course card */
-.prereq-block {
-  margin-top: 8px;
+.course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 4px 0;
+}
+
+.course-tag {
+  padding: 2px 9px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background-color: var(--csu-blue-tint);
+  color: var(--csu-blue);
+}
+
+.course-tag.quest {
+  background-color: var(--csu-orange-tint);
+  color: var(--csu-orange-ink);
+}
+
+/* Description and prerequisites when a result is expanded */
+.course-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 14px 4px 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--csu-line);
+  font-size: 0.85rem;
+}
+
+.course-detail p {
+  line-height: 1.5;
+  color: #374151;
 }
 
 .prereq-list {
@@ -73,24 +107,23 @@ input[type=number] {
   padding-left: 0;
   margin-bottom: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .prereq-list li {
-  padding: 4px 8px;
-  border-left: 3px solid var(--csu-orange);
-  border-radius: 0 6px 6px 0;
-  background-color: var(--csu-subtle);
+  margin-bottom: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--csu-line);
+  /* long requirements wrap, so not fully round */
+  border-radius: 14px;
+  line-height: 1.4;
+  color: #374151;
 }
 
 .prereq-code {
-  padding: 0 4px;
-  border-radius: 4px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--csu-blue);
-  background-color: var(--csu-blue-tint);
 }
 
 .prereq-code:hover {
@@ -98,30 +131,7 @@ input[type=number] {
 }
 
 .prereq-none {
-  display: block;
-  margin-top: 2px;
   color: var(--csu-muted);
-}
-
-.course-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 6px 4px 0;
-}
-
-.course-tag {
-  padding: 1px 8px;
-  border-radius: 9999px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  background-color: var(--csu-blue-tint);
-  color: var(--csu-blue);
-}
-
-.course-tag.quest {
-  background-color: #ffe4d6;
-  color: #aa3908;
 }
 
 .course-actions {
@@ -186,6 +196,3 @@ input[type=number] {
   color: var(--csu-blue);
 }
 
-.prereq-list li {
-  margin-bottom: 0;
-}
