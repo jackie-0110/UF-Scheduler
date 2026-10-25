@@ -1,11 +1,11 @@
 import { Instructor, websiteURL } from "../CourseUI/CourseTypes";
 
 const ratingTone = (rating: number) =>
-  rating <= 2 ? "low" : rating < 4 ? "mid" : "high";
+  rating <= 2 ? "bad" : rating < 4 ? "ok" : "good";
 
 // Low difficulty is good, so it uses the reverse scale
 const difficultyTone = (difficulty: number) =>
-  difficulty <= 2 ? "high" : difficulty < 4 ? "mid" : "low";
+  difficulty <= 2 ? "good" : difficulty < 4 ? "ok" : "bad";
 
 const InstructorRatings: React.FC<{ instructors?: Instructor[] }> = ({
   instructors,
@@ -13,35 +13,40 @@ const InstructorRatings: React.FC<{ instructors?: Instructor[] }> = ({
   const named = (instructors ?? []).filter((i) => i?.name?.trim());
   if (!named.length) return null;
   return (
-    <ul className="instructor-ratings">
-      {named.map((instructor) => (
-        <li key={`${instructor.name}-${instructor.professorID}`}>
-          <span>{instructor.name}</span>
-          {instructor.avgRating ? (
-            <a
-              href={`${websiteURL}${instructor.professorID}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Rating on RateMyProfessors"
-            >
-              <b className={ratingTone(instructor.avgRating)}>
-                {instructor.avgRating.toFixed(1)}
-              </b>{" "}
-              rating
-              {instructor.avgDifficulty ? (
-                <>
-                  {" · "}
-                  <b className={difficultyTone(instructor.avgDifficulty)}>
-                    {instructor.avgDifficulty.toFixed(1)}
-                  </b>{" "}
-                  difficulty
-                </>
-              ) : null}
-            </a>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <div className="instructor-ratings">
+      <span className="csu-label">
+        {named.length > 1 ? "Instructors" : "Instructor"}
+      </span>
+      <ul>
+        {named.map((instructor) => (
+          <li key={`${instructor.name}-${instructor.professorID}`}>
+            <span className="instructor-name">{instructor.name}</span>
+            {instructor.avgRating ? (
+              <a
+                className="instructor-scores"
+                href={`${websiteURL}${instructor.professorID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open on RateMyProfessors"
+              >
+                <span className={`score ${ratingTone(instructor.avgRating)}`}>
+                  ★ {instructor.avgRating.toFixed(1)}
+                </span>
+                {instructor.avgDifficulty ? (
+                  <span
+                    className={`score ${difficultyTone(instructor.avgDifficulty)}`}
+                  >
+                    Difficulty {instructor.avgDifficulty.toFixed(1)}
+                  </span>
+                ) : null}
+              </a>
+            ) : (
+              <span className="instructor-scores none">No ratings</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 
