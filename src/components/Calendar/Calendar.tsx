@@ -443,6 +443,7 @@ const Calendar: React.FC<CalendarProps> = ({
               courseName: section.courseCode ? section.courseName : undefined,
               color,
               finalExam: section.finalExam,
+              instructors: section.instructors,
               location: `${meetBuilding} ${meetRoom}`,
               firstDay: section.startDate,
               lastDay: section.endDate,

@@ -377,7 +377,7 @@
   position: absolute;
   left: calc(100% + 6px);
   z-index: 5;
-  width: 220px;
+  width: 240px;
   padding: 12px 14px;
   border-radius: 12px;
   background-color: var(--csu-surface);
@@ -427,6 +427,46 @@
 
 .week-grid-popover dt {
   color: var(--csu-muted);
+}
+
+/* Instructor names with RateMyProfessors scores (popovers and the online strip) */
+.instructor-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--csu-line);
+}
+
+.instructor-ratings li {
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor-ratings a {
+  font-size: 0.75rem;
+  color: var(--csu-muted);
+}
+
+.instructor-ratings a:hover {
+  text-decoration: underline;
+}
+
+.instructor-ratings b {
+  font-weight: 700;
+}
+
+.instructor-ratings .high {
+  color: #16a34a;
+}
+
+.instructor-ratings .mid {
+  color: #d97706;
+}
+
+.instructor-ratings .low {
+  color: #dc2626;
 }
 
 @media (max-width: 500px) {

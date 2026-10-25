@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { Instructor } from "../CourseUI/CourseTypes";
+import InstructorRatings from "./InstructorRatings";
 
 export type GridAppointment = {
   id: string;
@@ -11,6 +13,7 @@ export type GridAppointment = {
   classNumber?: string;
   location?: string;
   finalExam?: string;
+  instructors?: Instructor[];
 };
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -210,6 +213,7 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
                             </>
                           )}
                         </dl>
+                        <InstructorRatings instructors={event.instructors} />
                       </div>
                     )}
                   </div>
