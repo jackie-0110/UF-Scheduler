@@ -196,6 +196,8 @@
 .week-grid-popover.no-meeting-popover {
   top: calc(100% - 6px);
   left: 16px;
+  /* not tied to a grid column, so it can be wider than the class popover on phones */
+  width: min(280px, calc(100% - 32px));
   z-index: 6;
 }
 
