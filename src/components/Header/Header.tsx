@@ -38,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     const sumCredits = selectedCourses.reduce((totalCredits, course) => {
       // Check if credits is a number
-      if (typeof course.sections[0].credits === "number") {
+      if (typeof course.sections[0]?.credits === "number") {
         return totalCredits + course.sections[0].credits;
       }
       // If it's not a number, just return the accumulated total so far

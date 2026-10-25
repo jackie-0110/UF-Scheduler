@@ -126,7 +126,7 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
                   : ""}
               </strong>
               <span>
-                {course.sections[0].credits} cr
+                {course.sections[0]?.credits ?? 0} cr
                 {selectedSection ? ` · #${selectedSection.classNumber}` : ""}
                 {course.inPerson ? " · in-person" : ""}
               </span>
