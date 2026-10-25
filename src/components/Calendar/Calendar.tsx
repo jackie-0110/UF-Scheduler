@@ -6,6 +6,7 @@ import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
 import WeekGrid from "./WeekGrid";
+import NoMeetingStrip from "./NoMeetingStrip";
 import { findClashPairs } from "./calendarConflictUtils";
 
 const today = new Date();
@@ -530,20 +531,6 @@ const Calendar: React.FC<CalendarProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const getOnlineMessage = (combination: Section[]) => {
-    const onlineSectionNames = combination
-      .filter((section) => !section.meetTimes || section.meetTimes.length === 0)
-      .map((section) => section.courseName);
-    if (onlineSectionNames.length > 1) {
-      return `${onlineSectionNames
-        .slice(0, -1)
-        .join(", ")} and ${onlineSectionNames.slice(-1)} are online`;
-    }
-    return onlineSectionNames.length === 1
-      ? `${onlineSectionNames[0]} is online`
-      : "";
-  };
-
   const canSort = allCombinations.count <= SORT_LIMIT;
 
   // Only worth computing when nothing fits
@@ -643,7 +630,11 @@ const Calendar: React.FC<CalendarProps> = ({
     ? currentPosition - (selectedCalendar ? 1 : 0) + 1
     : 0;
   const optionTotal = `${otherOptions.length}${hasMoreItems ? "+" : ""}`;
-  const onlineMessage = current ? getOnlineMessage(current.combination) : "";
+  const noMeetingSections = current
+    ? current.combination.filter(
+        (section) => section.courseCode && !section.meetTimes?.length
+      )
+    : [];
 
   return (
     <div className="calendar-container-2">
@@ -807,9 +798,6 @@ const Calendar: React.FC<CalendarProps> = ({
             ) : (
               <span className="schedule-card-title">Your week</span>
             )}
-            {onlineMessage && (
-              <span className="online-section-message">{onlineMessage}</span>
-            )}
             {current && current.appointments.length > 0 && (
               <div className="schedule-card-actions">
                 <button
@@ -876,7 +864,10 @@ const Calendar: React.FC<CalendarProps> = ({
               )}
             </div>
           ) : (
-            <WeekGrid appointments={current ? current.appointments : []} />
+            <>
+              <NoMeetingStrip sections={noMeetingSections} />
+              <WeekGrid appointments={current ? current.appointments : []} />
+            </>
           )}
         </div>
       </div>
