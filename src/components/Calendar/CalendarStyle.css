@@ -150,7 +150,8 @@
 
 /* Classes with no weekly meeting time, shown above the grid */
 .no-meeting-strip {
-  padding: 8px 14px 6px;
+  position: relative;
+  padding: 10px 16px 12px;
   border-bottom: 1px solid var(--csu-line);
   font-size: 0.75rem;
 }
@@ -158,61 +159,44 @@
 .no-meeting-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 6px;
 }
 
-.no-meeting-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-right: 2px;
-  color: var(--csu-muted);
-}
-
+/* same look as a class block on the grid */
 .no-meeting-chip {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  max-width: 240px;
-  padding: 3px 10px 3px 8px;
-  border: 1px solid var(--csu-line);
-  border-left-width: 4px;
-  border-radius: 6px;
-  background-color: var(--csu-surface);
-  color: var(--csu-ink);
+  max-width: 260px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  line-height: 1.25;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.no-meeting-chip strong {
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .no-meeting-chip span {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--csu-muted);
+  opacity: 0.85;
 }
 
 .no-meeting-chip:hover,
-.no-meeting-chip.open {
-  background-color: var(--csu-subtle);
+.no-meeting-chip[aria-expanded="true"] {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.no-meeting-detail {
-  position: relative;
-  max-width: 320px;
-  margin-top: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background-color: var(--csu-surface);
-  box-shadow: var(--csu-shadow);
-}
-
-.no-meeting-detail dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 3px 10px;
-}
-
-.no-meeting-detail dt {
-  color: var(--csu-muted);
+/* floats over the grid like the class popover */
+.week-grid-popover.no-meeting-popover {
+  top: calc(100% - 6px);
+  left: 16px;
+  z-index: 6;
 }
 
 .schedule-card-actions {
