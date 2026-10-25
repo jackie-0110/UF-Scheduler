@@ -7,7 +7,7 @@ export const splitPrereqs = (raw?: string): string[] => {
   let depth = 0;
   let start = 0;
   const push = (end: number) => {
-    const part = text.slice(start, end).trim();
+    const part = text.slice(start, end).trim().replace(/\.$/, "");
     if (part) parts.push(part);
   };
   for (let i = 0; i < text.length; i++) {

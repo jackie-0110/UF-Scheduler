@@ -24,3 +24,11 @@ test("empty or N/A gives no parts", () => {
 test("does not split inside words like 'band'", () => {
   expect(splitPrereqs("Marching band experience")).toEqual(["Marching band experience"]);
 });
+
+test("drops the sentence's final period", () => {
+  expect(splitPrereqs("Prereq: CDA 3101, COP 3530, and COP 4600.")).toEqual([
+    "CDA 3101",
+    "COP 3530",
+    "COP 4600",
+  ]);
+});
