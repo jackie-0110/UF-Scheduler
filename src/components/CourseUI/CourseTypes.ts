@@ -29,6 +29,9 @@ export type Section = {
   courseCode: string;
   startDate: string;
   endDate: string;
+  genEd?: string[]; // e.g. ["Humanities", "International"]
+  quest?: string[]; // e.g. ["QUEST 1"]
+  grWriting?: string; // writing requirement in thousands of words, "N" for none
   firstDay?: string; // Added for ICS calendar generation with MM/DD/YYYY format
   lastDay?: string; // Added for ICS calendar generation with MM/DD/YYYY format
 };
