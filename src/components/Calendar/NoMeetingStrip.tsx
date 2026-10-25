@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { Section } from "../CourseUI/CourseTypes";
-import InstructorRatings from "./InstructorRatings";
+import InstructorRatings from "../CourseUI/InstructorRatings";
 import { contrastText } from "./WeekGrid";
 
 const sectionKey = (s: Section) => `${s.courseCode}|${s.classNumber}`;

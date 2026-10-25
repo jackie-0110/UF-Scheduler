@@ -1,4 +1,5 @@
-import { Instructor, websiteURL } from "../CourseUI/CourseTypes";
+import { Instructor, websiteURL } from "./CourseTypes";
+import "./InstructorRatings.css";
 
 const ratingTone = (rating: number) =>
   rating <= 2 ? "bad" : rating < 4 ? "ok" : "good";

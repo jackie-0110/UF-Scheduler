@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { Instructor } from "../CourseUI/CourseTypes";
-import InstructorRatings from "./InstructorRatings";
+import InstructorRatings from "../CourseUI/InstructorRatings";
 
 export type GridAppointment = {
   id: string;
