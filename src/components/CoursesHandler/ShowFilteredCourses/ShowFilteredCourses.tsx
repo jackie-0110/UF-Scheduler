@@ -456,7 +456,7 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                     </div>
                     {isOpen && (
                       <div>
-                        <div className="course-detail">
+                        <div className="result-detail">
                           <section>
                             <span className="csu-label">Description</span>
                             <p>

@@ -86,7 +86,7 @@ input[type=number] {
 }
 
 /* Description and prerequisites when a result is expanded */
-.course-detail {
+.result-detail {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -96,7 +96,7 @@ input[type=number] {
   font-size: 0.85rem;
 }
 
-.course-detail p {
+.result-detail p {
   line-height: 1.5;
   color: #374151;
 }
