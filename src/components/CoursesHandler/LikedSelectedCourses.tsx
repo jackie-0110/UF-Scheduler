@@ -123,10 +123,11 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
             className={`course-chip fade-in${
               course.excludedFromSchedule ? " hidden-course" : ""
             }`}
-            style={{
-              ...getCourseBackgroundColor(course),
-              color: getContrastYIQ(color),
-            }}
+            style={
+              course.excludedFromSchedule
+                ? { ...getCourseBackgroundColor(course), backgroundColor: "transparent", borderColor: color }
+                : { ...getCourseBackgroundColor(course), color: getContrastYIQ(color) }
+            }
             title={
               course.excludedFromSchedule
                 ? `${details} · hidden from schedules`
@@ -145,6 +146,7 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
                   : ""}
               </strong>
               <span>
+                {course.excludedFromSchedule ? "hidden · " : ""}
                 {course.sections[0]?.credits ?? 0} cr
                 {selectedSection ? ` · #${selectedSection.classNumber}` : ""}
                 {course.inPerson ? " · in-person" : ""}
