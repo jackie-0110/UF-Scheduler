@@ -332,7 +332,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
   // Step 1: Identify selected sections
   const getAllSelectedSections = () => {
-    return selectedCourses.map((course) => {
+    return selectedCourses
+      .filter((course) => !course.excludedFromSchedule)
+      .map((course) => {
       const selectedSection = course.sections.find(
         (section) => section.selected === true
       );
@@ -617,7 +619,9 @@ const Calendar: React.FC<CalendarProps> = ({
     filters.endBy !== null ||
     filters.maxGap !== null ||
     filters.daysOff.length > 0;
-  const hasCourses = selectedCourses.length > 0 || customAppointments.length > 0;
+  const hasCourses =
+    selectedCourses.some((course) => !course.excludedFromSchedule) ||
+    customAppointments.length > 0;
   const hourOptions = (hours: number[]) =>
     hours.map((hour) => (
       <option key={hour} value={hour * 60}>
