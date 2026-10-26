@@ -116,11 +116,24 @@
 }
 
 .section-exclude:hover {
-  background: #fde8e8;
-  color: #b42318;
+  background: var(--csu-bad-tint);
+  color: var(--csu-bad);
 }
 
-.section-card.excluded {
+.section-card.excluded .section-exclude {
+  border: 1px solid var(--csu-line);
+  color: var(--csu-ink);
+}
+
+.section-card.excluded .section-exclude:hover {
+  border-color: var(--csu-blue);
+  background: none;
+  color: var(--csu-blue);
+}
+
+/* dim the details but keep the restore button readable */
+.section-card.excluded .section-card-title,
+.section-card.excluded > :not(.section-card-head) {
   opacity: 0.55;
 }
 

@@ -32,16 +32,12 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
     return section.waitList.total + "/" + section.waitList.cap;
   };
 
-  const isSectionSelected = (section: Section) => {
-    const selectedCourse = selectedCourses.find((c) => c.code === course.code && c.name === course.name);
-    if (selectedCourse) {
-      const selectedSection = selectedCourse.sections.find(
-        (s) => s.classNumber === section.classNumber
-      );
-      return selectedSection?.selected === true;
-    }
-    return false;
-  };
+  // This course's entry in the selected list, if it's been added
+  const selectedCourse = selectedCourses.find(
+    (c) => c.code === course.code && c.name === course.name
+  );
+  const savedSection = (section: Section) =>
+    selectedCourse?.sections.find((s) => s.classNumber === section.classNumber);
 
   const toggleSectionSelected = (section: Section) => {
     let courseExists = false;
@@ -109,13 +105,6 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
     setSelectedCourses(updatedCourses);
   };  
 
-  const isSectionExcluded = (section: Section) => {
-    const selectedCourse = selectedCourses.find((c) => c.code === course.code && c.name === course.name);
-    return (
-      selectedCourse?.sections.find((s) => s.classNumber === section.classNumber)?.excluded === true
-    );
-  };
-
   // Leaves one section out of every schedule; adds the course if it isn't selected yet
   const toggleSectionExcluded = (section: Section) => {
     const flip = (s: Section): Section =>
@@ -149,8 +138,9 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
         {course.sections
           .sort((a, b) => a.waitList.total - b.waitList.total)
           .map((section, index) => {
-            const selected = isSectionSelected(section);
-            const excluded = isSectionExcluded(section);
+            const saved = savedSection(section);
+            const selected = saved?.selected === true;
+            const excluded = saved?.excluded === true;
             const seats = seatStatus(section);
             return (
               <li
@@ -160,23 +150,27 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                 <div className="section-card-head">
                   <div className="section-card-title">
                     <strong>Class #{section.classNumber}</strong>
-                    <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
+                    {excluded ? (
+                      <span className="seat-pill unknown">Excluded</span>
+                    ) : (
+                      <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
+                    )}
                   </div>
                   {!excluded && (
-                  <button
-                    type="button"
-                    className={`course-action${selected ? " active" : ""}`}
-                    aria-pressed={selected}
-                    onClick={() => toggleSectionSelected(section)}
-                    title={
-                      selected
-                        ? "Go back to considering every section"
-                        : "Build schedules with only this section of the course"
-                    }
-                  >
-                    {selected ? <BiSolidLockAlt /> : <BiSolidLockOpen />}
-                    {selected ? "Using this section" : "Use only this section"}
-                  </button>
+                    <button
+                      type="button"
+                      className={`course-action${selected ? " active" : ""}`}
+                      aria-pressed={selected}
+                      onClick={() => toggleSectionSelected(section)}
+                      title={
+                        selected
+                          ? "Go back to considering every section"
+                          : "Build schedules with only this section of the course"
+                      }
+                    >
+                      {selected ? <BiSolidLockAlt /> : <BiSolidLockOpen />}
+                      {selected ? "Using this section" : "Use only this section"}
+                    </button>
                   )}
                   <button
                     type="button"
@@ -190,7 +184,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                     aria-label={excluded ? "Restore this section" : "Exclude this section"}
                   >
                     {excluded ? <PiArrowCounterClockwiseBold /> : <PiXBold />}
-                    {excluded && "Excluded · restore"}
+                    {excluded && "Restore"}
                   </button>
                 </div>
                 {section.meetTimes.length > 0 ? (
