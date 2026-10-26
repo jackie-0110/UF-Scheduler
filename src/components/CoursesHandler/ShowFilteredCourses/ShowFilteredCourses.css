@@ -116,7 +116,7 @@ input[type=number] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 14px;
+  gap: 4px 9px;
   font-size: 0.8rem;
 }
 
@@ -134,7 +134,7 @@ input[type=number] {
 .prereq-code {
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--csu-blue-tint, #eaf0ff);
+  background: var(--csu-blue-tint);
   font-weight: 700;
   font-size: 0.78rem;
   color: var(--csu-blue);
@@ -146,6 +146,27 @@ button.prereq-code:hover {
 
 .prereq-text {
   font-size: 0.75rem;
+  color: var(--csu-muted);
+}
+
+/* cancel the list gap so "(" and ")" hug the codes they group */
+.prereq-paren {
+  font-size: 0.8rem;
+  color: var(--csu-muted);
+}
+
+.prereq-paren.open {
+  margin-right: -4px;
+}
+
+.prereq-paren.close {
+  margin-left: -4px;
+}
+
+/* a dot between requirements so neighbouring parts don't run together */
+.prereq-list li + li::before {
+  content: "·";
+  margin-right: 9px;
   color: var(--csu-muted);
 }
 

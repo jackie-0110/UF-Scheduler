@@ -1,23 +1,37 @@
 import React from "react";
 import { COURSE_CODE, splitPrereqs } from "./prereqText";
 
+// Connecting text between codes. Inner parentheses stay, since they carry
+// the grouping in "A or (B and C)", but sit snug against the codes.
+const textNode = (key: string, text: string) =>
+  text
+    .replace(/\s+/g, " ")
+    .split(/([()])/)
+    .map((piece) => piece.trim())
+    .filter(Boolean)
+    .map((piece, i) =>
+      piece === "(" || piece === ")" ? (
+        <span
+          key={`${key}-${i}`}
+          className={`prereq-paren ${piece === "(" ? "open" : "close"}`}
+        >
+          {piece}
+        </span>
+      ) : (
+        <span key={`${key}-${i}`} className="prereq-text">
+          {piece}
+        </span>
+      )
+    );
+
 // Course codes become buttons that search for that course
-// Connecting text between codes, minus the catalog's stray parentheses
-const textNode = (key: string, text: string) => {
-  const clean = text.replace(/[()]/g, "").replace(/\s+/g, " ").trim();
-  return clean ? (
-    <span key={key} className="prereq-text">
-      {clean}
-    </span>
-  ) : null;
-};
 
 const withCodeLinks = (text: string, onCode?: (code: string) => void) => {
   const nodes: React.ReactNode[] = [];
   let last = 0;
   for (const match of Array.from(text.matchAll(COURSE_CODE))) {
     const index = match.index ?? 0;
-    if (index > last) nodes.push(textNode(`t${index}`, text.slice(last, index)));
+    if (index > last) nodes.push(...textNode(`t${index}`, text.slice(last, index)));
     const code = `${match[1]} ${match[2]}`;
     nodes.push(
       onCode ? (
@@ -39,7 +53,7 @@ const withCodeLinks = (text: string, onCode?: (code: string) => void) => {
     );
     last = index + match[0].length;
   }
-  if (last < text.length) nodes.push(textNode("tail", text.slice(last)));
+  if (last < text.length) nodes.push(...textNode("tail", text.slice(last)));
   return nodes;
 };
 
