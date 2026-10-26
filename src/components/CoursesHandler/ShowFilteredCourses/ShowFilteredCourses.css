@@ -101,33 +101,73 @@ input[type=number] {
   color: #374151;
 }
 
+.result-prereqs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
 .prereq-list {
   /* PPStyles.css styles every ul globally */
   list-style: none;
   padding-left: 0;
-  margin-bottom: 0;
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 4px 9px;
+  font-size: 0.8rem;
 }
 
 .prereq-list li {
-  margin-bottom: 0;
-  padding: 4px 12px;
-  border: 1px solid var(--csu-line);
-  /* long requirements wrap, so not fully round */
-  border-radius: 14px;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 5px;
   line-height: 1.4;
   color: #374151;
 }
 
 .prereq-code {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--csu-blue-tint);
   font-weight: 700;
+  font-size: 0.78rem;
   color: var(--csu-blue);
 }
 
-.prereq-code:hover {
+button.prereq-code:hover {
   text-decoration: underline;
+}
+
+.prereq-text {
+  font-size: 0.75rem;
+  color: var(--csu-muted);
+}
+
+/* cancel the list gap so "(" and ")" hug the codes they group */
+.prereq-paren {
+  font-size: 0.8rem;
+  color: var(--csu-muted);
+}
+
+.prereq-paren.open {
+  margin-right: -4px;
+}
+
+.prereq-paren.close {
+  margin-left: -4px;
+}
+
+/* a dot between requirements so neighbouring parts don't run together */
+.prereq-list li + li::before {
+  content: "·";
+  margin-right: 9px;
+  color: var(--csu-muted);
 }
 
 .prereq-none {

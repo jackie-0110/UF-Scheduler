@@ -32,3 +32,31 @@ test("drops the sentence's final period", () => {
     "COP 4600",
   ]);
 });
+
+test("unwraps parentheses around a whole part but keeps inner groups", () => {
+  expect(
+    splitPrereqs(
+      "Prereq: BME 3060 and (CHM 3217 or (CHM 2210 and CHM 2211) with minimum grades of C)."
+    )
+  ).toEqual(["BME 3060", "CHM 3217 or (CHM 2210 and CHM 2211) with minimum grades of C"]);
+});
+
+test("leaves side-by-side groups alone", () => {
+  expect(splitPrereqs("(CSD_BHS) with junior standing or (CSD_UMN)")).toEqual([
+    "(CSD_BHS) with junior standing or (CSD_UMN)",
+  ]);
+});
+
+test("splits on ampersands", () => {
+  expect(splitPrereqs("EMA 3010 & (EGM 3520 with a C) & MAS 3114")).toEqual([
+    "EMA 3010",
+    "EGM 3520 with a C",
+    "MAS 3114",
+  ]);
+});
+
+test("splits sentences so a coreq gets its own part", () => {
+  expect(
+    splitPrereqs("Prereq: (PHY 2048 or PHY 2060) and (MAC 2311 or MAC 3472). Coreq: PHY 2049.")
+  ).toEqual(["PHY 2048 or PHY 2060", "MAC 2311 or MAC 3472", "Coreq: PHY 2049"]);
+});

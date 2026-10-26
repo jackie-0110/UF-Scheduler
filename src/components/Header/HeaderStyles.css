@@ -50,6 +50,8 @@
 .brand-logo {
   height: 36px;
   width: auto;
+  /* logo hidden for now; delete this line to bring it back */
+  display: none;
 }
 
 .brand .title {

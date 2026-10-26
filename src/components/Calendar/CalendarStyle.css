@@ -324,6 +324,25 @@
   color: var(--csu-blue);
 }
 
+.schedule-restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--csu-line);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--csu-ink);
+  background-color: var(--csu-surface);
+}
+
+.schedule-restore:hover {
+  border-color: var(--csu-blue);
+  color: var(--csu-blue);
+}
+
 .clash-with {
   font-size: 0.75rem;
   color: var(--csu-muted);
