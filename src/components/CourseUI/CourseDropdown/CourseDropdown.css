@@ -37,12 +37,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
 }
 
 .section-card-title {
+  margin-right: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -103,4 +103,27 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+}
+
+.section-exclude {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--csu-muted);
+}
+
+.section-exclude:hover {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.section-card.excluded {
+  opacity: 0.55;
+}
+
+.section-card.excluded .section-card-title strong {
+  text-decoration: line-through;
 }

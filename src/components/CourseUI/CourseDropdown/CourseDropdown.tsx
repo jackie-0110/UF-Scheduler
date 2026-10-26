@@ -1,6 +1,7 @@
 import React from "react";
 import { Course, Section } from "../CourseTypes";
 import { BiSolidLockOpen, BiSolidLockAlt } from "react-icons/bi";
+import { PiXBold, PiArrowCounterClockwiseBold } from "react-icons/pi";
 import InstructorRatings from "../InstructorRatings";
 import "./CourseDropdown.css";
 
@@ -56,6 +57,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
               return {
                 ...s,
                 selected: !s.selected,
+                excluded: false,
               };
             } else {
               // Deselect all other sections
@@ -80,6 +82,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
             return {
               ...s,
               selected: true,
+              excluded: false,
             };
           } else {
             return {
@@ -106,6 +109,32 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
     setSelectedCourses(updatedCourses);
   };  
 
+  const isSectionExcluded = (section: Section) => {
+    const selectedCourse = selectedCourses.find((c) => c.code === course.code && c.name === course.name);
+    return (
+      selectedCourse?.sections.find((s) => s.classNumber === section.classNumber)?.excluded === true
+    );
+  };
+
+  // Leaves one section out of every schedule; adds the course if it isn't selected yet
+  const toggleSectionExcluded = (section: Section) => {
+    const flip = (s: Section): Section =>
+      s.classNumber === section.classNumber
+        ? { ...s, excluded: !s.excluded, selected: false }
+        : s;
+    const isThis = (c: Course) => c.code === course.code && c.name === course.name;
+    if (selectedCourses.some(isThis)) {
+      setSelectedCourses(
+        selectedCourses.map((c) => (isThis(c) ? { ...c, sections: c.sections.map(flip) } : c))
+      );
+    } else {
+      setSelectedCourses([
+        ...selectedCourses,
+        { ...course, sections: course.sections.map((s) => flip({ ...s, selected: false })) },
+      ]);
+    }
+  };
+
   const seatStatus = (section: Section) => {
     const { total, cap } = section.waitList;
     if (!total && cap > 0) return { tone: "open", text: "Open seats" };
@@ -121,17 +150,19 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
           .sort((a, b) => a.waitList.total - b.waitList.total)
           .map((section, index) => {
             const selected = isSectionSelected(section);
+            const excluded = isSectionExcluded(section);
             const seats = seatStatus(section);
             return (
               <li
                 key={index}
-                className={`section-card${selected ? " selected" : ""}`}
+                className={`section-card${selected ? " selected" : ""}${excluded ? " excluded" : ""}`}
               >
                 <div className="section-card-head">
                   <div className="section-card-title">
                     <strong>Class #{section.classNumber}</strong>
                     <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
                   </div>
+                  {!excluded && (
                   <button
                     type="button"
                     className={`course-action${selected ? " active" : ""}`}
@@ -145,6 +176,21 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                   >
                     {selected ? <BiSolidLockAlt /> : <BiSolidLockOpen />}
                     {selected ? "Using this section" : "Use only this section"}
+                  </button>
+                  )}
+                  <button
+                    type="button"
+                    className="section-exclude"
+                    onClick={() => toggleSectionExcluded(section)}
+                    title={
+                      excluded
+                        ? "Consider this section again"
+                        : "Leave this section out of every schedule"
+                    }
+                    aria-label={excluded ? "Restore this section" : "Exclude this section"}
+                  >
+                    {excluded ? <PiArrowCounterClockwiseBold /> : <PiXBold />}
+                    {excluded && "Excluded · restore"}
                   </button>
                 </div>
                 {section.meetTimes.length > 0 ? (

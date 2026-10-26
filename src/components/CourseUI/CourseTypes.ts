@@ -23,6 +23,7 @@ export type Section = {
   meetTimes: MeetingTime[];
   finalExam: string;
   selected: boolean;
+  excluded?: boolean; // left out when building schedules
   courseName: string;
   color: string;
   waitList: WaitList;
