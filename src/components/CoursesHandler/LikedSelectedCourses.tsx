@@ -110,10 +110,15 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
         const selectedSection = getSelectedSection(course);
         const color = getHashedColor(course);
         const code = course.code.replace(/([A-Z]+)/g, "$1 ");
+        // a locked section overrides exclusions, so only count them otherwise
+        const excludedCount = selectedSection
+          ? 0
+          : course.sections.filter((s) => s.excluded).length;
         const details = [
           course.name,
           course.inPerson ? "in-person sections only" : "",
           selectedSection ? `class # ${selectedSection.classNumber}` : "",
+          excludedCount ? `${excludedCount} of ${course.sections.length} sections excluded` : "",
         ]
           .filter(Boolean)
           .join(" · ");
@@ -150,6 +155,11 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
                 {course.sections[0]?.credits ?? 0} cr
                 {selectedSection ? ` · #${selectedSection.classNumber}` : ""}
                 {course.inPerson ? " · in-person" : ""}
+                {excludedCount
+                  ? excludedCount === course.sections.length
+                    ? " · all excluded"
+                    : ` · ${excludedCount} excluded`
+                  : ""}
               </span>
             </button>
             <button
