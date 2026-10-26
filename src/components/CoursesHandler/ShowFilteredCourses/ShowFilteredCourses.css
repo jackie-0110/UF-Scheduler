@@ -105,29 +105,45 @@ input[type=number] {
   /* PPStyles.css styles every ul globally */
   list-style: none;
   padding-left: 0;
-  margin-bottom: 0;
+  margin: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  border: 1px solid var(--csu-line);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .prereq-list li {
-  margin-bottom: 0;
-  padding: 4px 12px;
-  border: 1px solid var(--csu-line);
-  /* long requirements wrap, so not fully round */
-  border-radius: 14px;
+  margin: 0;
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
   line-height: 1.4;
   color: #374151;
 }
 
+.prereq-list li + li {
+  border-top: 1px solid var(--csu-line);
+}
+
 .prereq-code {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--csu-blue-tint, #eaf0ff);
   font-weight: 700;
+  font-size: 0.85rem;
   color: var(--csu-blue);
 }
 
-.prereq-code:hover {
+button.prereq-code:hover {
   text-decoration: underline;
+}
+
+.prereq-text {
+  font-size: 0.8rem;
+  color: var(--csu-muted);
 }
 
 .prereq-none {
