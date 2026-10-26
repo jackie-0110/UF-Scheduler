@@ -8,7 +8,7 @@ const Fourohfour: React.FC = () => {
     <>
       <header className="header page-header">
         <a href="/" className="brand">
-          <img src="/csu_logo.svg" alt="UF CSU" className="brand-logo" />
+          {/* <img src="/csu_logo.svg" alt="UF CSU" className="brand-logo" /> */}
           <span className="title">UF Scheduler</span>
         </a>
       </header>

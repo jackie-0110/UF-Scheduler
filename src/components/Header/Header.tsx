@@ -78,7 +78,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="header">
         <div className="header-left">
           <a href="/" className="brand">
-            <img src="/csu_logo.svg" alt="UF CSU" className="brand-logo" />
+            {/* <img src="/csu_logo.svg" alt="UF CSU" className="brand-logo" /> */}
             <span className="title">UF Scheduler</span>
           </a>
           <select
