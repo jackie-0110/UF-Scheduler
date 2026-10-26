@@ -1,7 +1,7 @@
 import { Course, Section } from "../CourseUI/CourseTypes";
 import "./CalendarStyle.css";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { IoChevronBack, IoChevronForward, IoAlertCircleOutline } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoAlertCircleOutline, IoRefresh } from "react-icons/io5";
 import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
@@ -207,6 +207,7 @@ export type SelectedCalendarType = {
 
 interface CalendarProps {
   selectedCourses: Course[];
+  setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   customAppointments: any[];
   setCustomAppointments: React.Dispatch<React.SetStateAction<any[]>>;
   term: string;
@@ -215,6 +216,7 @@ interface CalendarProps {
 
 const Calendar: React.FC<CalendarProps> = ({
   selectedCourses,
+  setSelectedCourses,
   customAppointments,
   setCustomAppointments,
   term,
@@ -536,6 +538,28 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const canSort = allCombinations.count <= SORT_LIMIT;
 
+  // Courses with every section excluded can't be in any schedule
+  const fullyExcluded = useMemo(
+    () =>
+      selectedCourses.filter(
+        (c) =>
+          !c.excludedFromSchedule &&
+          c.sections.length > 0 &&
+          !c.sections.some((s) => s.selected) &&
+          c.sections.every((s) => s.excluded)
+      ),
+    [selectedCourses]
+  );
+
+  const restoreSections = (course: Course) =>
+    setSelectedCourses((prev) =>
+      prev.map((c) =>
+        c.code === course.code && c.name === course.name
+          ? { ...c, sections: c.sections.map((s) => ({ ...s, excluded: false })) }
+          : c
+      )
+    );
+
   // Only worth computing when nothing fits
   const clashPairs = useMemo(
     () => (currentCalendars.length === 0 ? findClashPairs(allCombinations.lists) : []),
@@ -838,7 +862,35 @@ const Calendar: React.FC<CalendarProps> = ({
                 <IoAlertCircleOutline size={26} />
               </span>
               <strong>No schedule fits</strong>
-              {filtersActive ? (
+              {fullyExcluded.length > 0 ? (
+                <>
+                  <span>
+                    {fullyExcluded.length === 1
+                      ? "Every section of this course is excluded."
+                      : "Every section of these courses is excluded."}
+                  </span>
+                  <div className="schedule-clash">
+                    <span className="csu-label">All sections excluded</span>
+                    <ul>
+                      {fullyExcluded.map((course) => (
+                        <li key={`${course.code}|${course.name}`}>
+                          <span className="clash-code">
+                            {course.code.replace(/([A-Z]+)/g, "$1 ").trim()}
+                          </span>
+                          <button
+                            type="button"
+                            className="schedule-restore"
+                            onClick={() => restoreSections(course)}
+                          >
+                            <IoRefresh size={13} aria-hidden />
+                            Restore sections
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : filtersActive ? (
                 <>
                   <span>Your filters rule out every combination of sections.</span>
                   <button

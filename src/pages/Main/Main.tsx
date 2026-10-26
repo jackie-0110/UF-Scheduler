@@ -392,6 +392,7 @@ const Main = () => {
             {currentView === "calendar" && (
               <Calendar
                 selectedCourses={selectedCourses}
+                setSelectedCourses={setSelectedCourses}
                 customAppointments={customAppointments}
                 setCustomAppointments={setCustomAppointments}
                 term={term}
