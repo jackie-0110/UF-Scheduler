@@ -465,8 +465,8 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                                 : "No description listed."}
                             </p>
                           </section>
-                          <section>
-                            <span className="csu-label">Prerequisites</span>
+                          <section className="result-prereqs">
+                            <span className="csu-label">Prereqs</span>
                             <PrerequisiteList
                               prerequisites={firstCourse.prerequisites}
                               onCourseCode={searchFor}
