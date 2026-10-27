@@ -3,7 +3,8 @@ import { PrereqMap } from "../Cytoscape/prereqs";
 import { buildMajorPlan } from "./majorPlans";
 import { aliasesOf, isRequirement, itemCredits, PlanSemester, validatePlan } from "./plannerLogic";
 import { buildTimeline, termStatus } from "./terms";
-import { AttrMap, cardNeeds, planFromTranscript, TakenCourse } from "./transcriptPlan";
+import { AttrMap, cardNeeds, finishEarly, planFromTranscript, TakenCourse } from "./transcriptPlan";
+import { normalizeCredits } from "../Cytoscape/prereqs";
 
 // Real catalog data and the real CS (Herbert Wertheim) model plan
 const info = prereqs as unknown as PrereqMap;
@@ -124,6 +125,14 @@ describe("reading requirement cards", () => {
   test("only free electives match any course; technical electives depend on the major", () => {
     expect(cardNeeds("Elective (3000 level or above, not in major)").elective).toEqual({ minLevel: 3000 });
     expect(cardNeeds("Technical elective").elective).toBeUndefined();
+    expect(cardNeeds("Technical electives").technical).toBe(true);
+  });
+  test("'with International' must also be met; Diversity can't be checked so it's skipped", () => {
+    expect(cardNeeds("Gen Ed Social and Behavioral Sciences with Diversity or International")).toEqual({
+      genEd: ["Social Science"],
+      also: ["International"],
+    });
+    expect(cardNeeds("State Core Gen Ed Humanities with Diversity")).toEqual({ genEd: ["Humanities"] });
   });
 });
 
@@ -190,4 +199,42 @@ test("a summer short by 1 credit still gets a class planned", () => {
   const fixture = { ...info, SPN1130: { ...info.COP3530, code: "SPN1130", credits: 5, prereq: [] } };
   const r = planFromTranscript(before, eight, fixture, attrs, NOW);
   expect(r.summer.credits).toBeGreaterThanOrEqual(9);
+});
+
+describe("technical electives and gen ed conditions", () => {
+  const withElectives: TakenCourse[] = [
+    ...transcript,
+    { code: "CIS4930", term: "Fall 2026", inProgress: true, credits: 3 },
+    { code: "GEO2420", term: "Spring 2026", grade: "A", credits: 3 },
+  ];
+  const tags: AttrMap = { ...attrs, GEO2420: { genEd: ["Social Science", "International"], quest: [] } };
+  const filled = (major?: string) =>
+    planFromTranscript(before, withElectives, info, tags, NOW, new Set(), major).matches;
+
+  test("a 3000+ CISE course fills a CS technical elective once the major is known", () => {
+    expect(filled(MAJOR)).toContainEqual({ code: "CIS4930", requirement: "Technical elective" });
+    expect(filled().map((m) => m.code)).not.toContain("CIS4930");
+  });
+
+  test("a plain social science course doesn't fill 'Social Science with International'", () => {
+    const card = "Gen Ed Social and Behavioral Sciences with Diversity or International";
+    const matches = filled(MAJOR);
+    expect(matches).toContainEqual({ code: "GEO2420", requirement: card });
+    expect(matches).not.toContainEqual({ code: "AMH2010", requirement: card });
+  });
+});
+
+test("a last term holding one class folds into the term before when it fits", () => {
+  const item = (code: string) => ({ id: code, code });
+  const items = [[item("COP4600"), item("CNT4007")], [], [item("CIS4914")]];
+  finishEarly(items, [true, false, true], info);
+  expect(items.map((list) => list.map((i) => i.code))).toEqual([["COP4600", "CNT4007", "CIS4914"], [], []]);
+});
+
+test("catalog credits sent as text ('VAR', '.5') become numbers or unknown", () => {
+  const map = normalizeCredits({
+    A: { ...info.COP3530, credits: "VAR" as unknown as number },
+    B: { ...info.COP3530, credits: ".5" as unknown as number },
+  });
+  expect([map.A.credits, map.B.credits]).toEqual([null, 0.5]);
 });

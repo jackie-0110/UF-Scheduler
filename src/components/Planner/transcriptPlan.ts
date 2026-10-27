@@ -61,22 +61,49 @@ const GEN_ED_WORDS: [RegExp, string][] = [
   [/international/i, "International"],
 ];
 
+type CardNeeds = {
+  quest?: string;
+  /** Any one of these gen ed areas */
+  genEd: string[];
+  /** "... with Diversity or International": one of these as well */
+  also?: string[];
+  elective?: { minLevel: number };
+  technical?: boolean;
+};
+
+const genEdIn = (text: string) => GEN_ED_WORDS.filter(([re]) => re.test(text)).map(([, name]) => name);
+
 /** "Quest 2 (Gen Ed Social and Behavioral Sciences)" -> quest 2, any gen ed ignored */
-export function cardNeeds(label: string): { quest?: string; genEd: string[]; elective?: { minLevel: number } } {
+export function cardNeeds(label: string): CardNeeds {
   const quest = label.match(/\bquest\s*(\d)/i);
   if (quest) return { quest: `QUEST ${quest[1]}`, genEd: [] };
-  const genEd = /gen ed|state core|science laboratory/i.test(label)
-    ? GEN_ED_WORDS.filter(([re]) => re.test(label)).map(([, name]) => name)
-    : [];
-  if (genEd.length) return { genEd };
-  // free electives only; technical, approved and subject electives depend on the major
+  if (/gen ed|state core|science laboratory/i.test(label)) {
+    const [main, rest] = label.split(/\bwith\b/i);
+    // the course search never reports Diversity, so only International can be checked
+    const also = rest ? genEdIn(rest).filter((name) => name === "International") : [];
+    const genEd = genEdIn(main);
+    if (genEd.length) return also.length ? { genEd, also } : { genEd };
+  }
+  if (/\btechnical electives?\b/i.test(label) && !/engineering and\/or/i.test(label)) {
+    return { genEd: [], technical: true };
+  }
+  // free electives only; approved and subject electives depend on the major
   if (/^electives?\b/i.test(label.trim()) && !/technical|approved|math|science/i.test(label)) {
     return { genEd: [], elective: { minLevel: /3000/.test(label) ? 3000 : 0 } };
   }
   return { genEd: [] };
 }
 
-const level = (code: string) => Number(code.slice(3, 4)) * 1000;
+// which courses count as a technical elective, for majors where that's a simple rule
+const TECHNICAL_ELECTIVES: [RegExp, RegExp][] = [
+  // CISE: any 3000+ level CAP, CDA, CEN, CIS, CNT, COP or COT course
+  [/^Computer Science\b/, /^(CAP|CDA|CEN|CIS|CNT|COP|COT)[3-7]/],
+];
+export const technicalElectiveRule = (major?: string) =>
+  major ? TECHNICAL_ELECTIVES.find(([name]) => name.test(major))?.[1] : undefined;
+
+// transfer placeholders: L000 is lower division, U000 upper
+const level = (code: string) => ({ L: 1000, U: 3000 }[code[3]] ?? Number(code[3]) * 1000);
 
 /**
  * Rebuilds a plan from a transcript:
@@ -94,8 +121,11 @@ export function planFromTranscript(
   info: PrereqMap,
   attrs: AttrMap,
   now: string,
-  alreadyDone: Set<string> = new Set()
+  alreadyDone: Set<string> = new Set(),
+  /** The model plan's major, for technical electives */
+  major?: string
 ): TranscriptPlan {
+  const technical = technicalElectiveRule(major);
   const inClass = taken.filter((t) => t.term && !t.examCredit);
   const examCredit = taken.filter((t) => !t.term || t.examCredit);
   const firstTerm = inClass
@@ -187,21 +217,25 @@ export function planFromTranscript(
   const cards = candidates
     .filter(isRequirement)
     .map((item) => ({ item, needs: cardNeeds(item.label ?? ""), left: item.credits ?? 3 }))
-    .filter(({ needs }) => needs.quest || needs.genEd.length || needs.elective)
+    .filter(({ needs }) => needs.quest || needs.genEd.length || needs.elective || (needs.technical && technical))
     .sort((a, b) => rank(a.needs) - rank(b.needs));
   const finished = new Set<PlanItem>();
   cards.forEach((card) => {
     for (const code of unused()) {
       if (card.left <= 0) break;
       const a = attrs[code] ?? attrs[aliasesOf(code)[1]];
-      const fits = card.needs.quest
-        ? !!a?.quest.includes(card.needs.quest)
-        : card.needs.genEd.length
-        ? !!a?.genEd.some((g) => card.needs.genEd.includes(g))
-        : level(code) >= (card.needs.elective?.minLevel ?? 0);
+      const { needs } = card;
+      const fits = needs.quest
+        ? !!a?.quest.includes(needs.quest)
+        : needs.genEd.length
+        ? !!a?.genEd.some((g) => needs.genEd.includes(g)) &&
+          (!needs.also || a.genEd.some((g) => needs.also!.includes(g)))
+        : needs.technical
+        ? !!technical?.test(code)
+        : level(code) >= (needs.elective?.minLevel ?? 0);
       if (!fits) continue;
       fill(card.item, code);
-      card.left -= info[code]?.credits ?? 3;
+      card.left -= creditsOf(code);
     }
     if (card.left <= 0) finished.add(card.item);
     else if (card.left < (card.item.credits ?? 3)) card.item.credits = card.left;
@@ -257,7 +291,9 @@ export function planFromTranscript(
       locked.push(...timeline.slice(locked.length).map(() => false));
       return build();
     }
-    return timeline.map((s, i) => ({ ...s, items: [...fixed[i], ...placed[i]] }));
+    const items = timeline.map((s, i) => [...fixed[i], ...placed[i]]);
+    finishEarly(items, isOpen.map((open, i) => open && !timeline[i].summer), info);
+    return timeline.map((s, i) => ({ ...s, items: items[i] }));
   };
   const semesters = build();
   const summerCredits = semesters
@@ -383,5 +419,28 @@ function pack(
   return { placed, overflow };
 }
 
-const rank = (needs: ReturnType<typeof cardNeeds>) =>
-  needs.quest ? 0 : needs.genEd.length === 1 ? 1 : needs.genEd.length ? 2 : 3;
+/**
+ * A capstone card keeps its model-plan term, which can leave a last term with one class in it.
+ * Fold the last term into the one before while that stays under 18 credits and nothing in it
+ * needs a course from that term first.
+ */
+export function finishEarly(items: PlanItem[][], regular: boolean[], info: PrereqMap) {
+  const load = (list: PlanItem[]) => list.reduce((sum, item) => sum + itemCredits(item, info), 0);
+  for (;;) {
+    const used = items.map((list, i) => (regular[i] && list.length ? i : -1)).filter((i) => i >= 0);
+    if (used.length < 2) return;
+    const last = used[used.length - 1];
+    const prev = used[used.length - 2];
+    if (load(items[last]) + load(items[prev]) > HARD_CAP) return;
+    const before = new Set(items[prev].flatMap(providesOf));
+    const needsPrev = items[last].some((item) =>
+      (courseOf(item, info)?.prereq ?? []).some((group) => group.some((code) => before.has(code)))
+    );
+    if (needsPrev) return;
+    items[prev] = [...items[prev], ...items[last]];
+    items[last] = [];
+  }
+}
+
+const rank = (needs: CardNeeds) =>
+  needs.quest ? 0 : needs.also ? 1 : needs.genEd.length === 1 ? 2 : needs.genEd.length ? 3 : needs.technical ? 4 : 5;

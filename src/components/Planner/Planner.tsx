@@ -47,6 +47,7 @@ import { exportPlanToPdf } from "./plannerPdf";
 import "./PlannerStyles.css";
 
 const NO_VARIANTS = new Map<string, string[]>();
+const MAJOR_KEY = "plannerMajor";
 
 const Planner: React.FC = () => {
   const { info, loading, error } = usePlannerCatalog();
@@ -104,13 +105,28 @@ const Planner: React.FC = () => {
         .reduce((sum, s) => sum + s.items.reduce((t, item) => t + itemCredits(item, info), 0), 0)
     : 0;
 
-  const loadMajor = (major: string) => {
-    if (!major || !info) return;
+  // remembered so a transcript rebuild knows which major's electives apply
+  const [major, setMajor] = useState(() => {
+    try {
+      return localStorage.getItem(MAJOR_KEY) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  });
+
+  const loadMajor = (name: string) => {
+    if (!name || !info) return;
     const hasWork = semesters.some((semester) => semester.items.length > 0);
-    if (hasWork && !window.confirm(`Replace your current plan with the ${major} model plan?`)) {
+    if (hasWork && !window.confirm(`Replace your current plan with the ${name} model plan?`)) {
       return;
     }
-    replaceItems(buildMajorPlan(major, info, semesters));
+    replaceItems(buildMajorPlan(name, info, semesters));
+    setMajor(name);
+    try {
+      localStorage.setItem(MAJOR_KEY, name);
+    } catch {
+      // storage unavailable
+    }
   };
 
   const lastTerm = lastRegularWithCourses(semesters);
@@ -169,7 +185,8 @@ const Planner: React.FC = () => {
       info,
       attrs,
       now,
-      completed
+      completed,
+      major
     );
     setUndo({ before: semesters, result });
     setShowDetails(false);
