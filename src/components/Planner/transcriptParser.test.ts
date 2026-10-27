@@ -111,3 +111,35 @@ describe("parseTranscript course history table", () => {
     expect(rows[0].status).toBe("in-progress");
   });
 });
+
+describe("transcript terms", () => {
+  it("tags each row with its term, from the row or the term line above it", () => {
+    const rows = parseTranscript(
+      "Fall 2025\tCOP 3502\tProgramming Fundamentals 1\t4\tA\t--\nSpring 2026\nMAC 2311 Calculus 1 B+ 4.00",
+      info
+    );
+    expect(rows.map((r) => [r.code, r.term])).toEqual([
+      ["COP3502C", "Fall 2025"],
+      ["MAC2311", "Spring 2026"],
+    ]);
+  });
+
+  it("marks P and TR grades as exam or transfer credit", () => {
+    const rows = parseTranscript("Fall 2025\tMAC 2311\tCalculus 1\t4\tP\t--", info);
+    expect(rows[0].examCredit).toBe(true);
+  });
+});
+
+describe("summer terms", () => {
+  it("reads Summer A / B / C sessions as that year's summer", () => {
+    const rows = parseTranscript(
+      "Summer A 2026\tCOP 3502\tProgramming Fundamentals 1\t4\tA\t--\nSummer C 2026\nMAC 2311 Calculus 1 B 4.00",
+      info
+    );
+    expect(rows.map((r) => r.term)).toEqual(["Summer 2026", "Summer 2026"]);
+  });
+});
+
+it("keeps the transcript's credits for each class", () => {
+  expect(parseTranscript("Fall 2025\tSPN 1130\tBeginning Spanish 1\t5\tB+\t--", info)[0].credits).toBe(5);
+});

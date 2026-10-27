@@ -24,6 +24,9 @@ interface ArrangeDialogProps {
   onClose: () => void;
 }
 
+const MIN_CAP = 6;
+const MAX_CAP = 21;
+
 const LABELS: Record<ArrangeStrategy, { title: string; blurb: string }> = {
   early: {
     title: "Finish early",
@@ -43,6 +46,7 @@ const ArrangeDialog: React.FC<ArrangeDialogProps> = ({
   onClose,
 }) => {
   const [results, setResults] = useState<ArrangedPlan[]>([]);
+  const [generated, setGenerated] = useState(false);
   const movable = semesters.flatMap((semester) =>
     semester.items.filter((item) => !isRequirement(item))
   );
@@ -56,8 +60,18 @@ const ArrangeDialog: React.FC<ArrangeDialogProps> = ({
   );
   const regularCount = allowed.filter(Boolean).length || 1;
   const [maxCredits, setMaxCredits] = useState(
-    Math.min(21, Math.max(15, Math.ceil(totalPlanned / regularCount)))
+    Math.min(MAX_CAP, Math.max(15, Math.ceil(totalPlanned / regularCount)))
   );
+  // typed text, applied on blur or Enter so "18" isn't clamped after the "1"
+  const [draft, setDraft] = useState(String(maxCredits));
+  const changeMax = (value: number) => {
+    const next = Number.isFinite(value) && value > 0 ? Math.max(MIN_CAP, Math.min(MAX_CAP, value)) : maxCredits;
+    setMaxCredits(next);
+    setDraft(String(next));
+    // old options were built with the old cap
+    setResults([]);
+    setGenerated(false);
+  };
 
   // How the plan is doing now, so an arrangement is only offered if it actually helps
   const current = {
@@ -67,7 +81,6 @@ const ArrangeDialog: React.FC<ArrangeDialogProps> = ({
   };
   const score = (warnings: number, over: number, under: number) =>
     warnings * 10000 + over * 100 + under;
-  const [generated, setGenerated] = useState(false);
 
   const generate = () => {
     const all = (["early", "balanced"] as ArrangeStrategy[]).map((strategy) =>
@@ -112,16 +125,38 @@ const ArrangeDialog: React.FC<ArrangeDialogProps> = ({
           <p className="planner-hint">Add some courses to your plan first.</p>
         ) : (
           <>
-            <label className="planner-field">
-              Max credits per semester
-              <input
-                type="number"
-                min={6}
-                max={21}
-                value={maxCredits}
-                onChange={(e) => setMaxCredits(Math.max(6, Math.min(21, Number(e.target.value))))}
-              />
-            </label>
+            <div className="planner-field">
+              <span id="max-credits-label">Max credits per semester</span>
+              <div className="planner-stepper" role="group" aria-labelledby="max-credits-label">
+                <button
+                  type="button"
+                  onClick={() => changeMax(maxCredits - 1)}
+                  disabled={maxCredits <= MIN_CAP}
+                  aria-label="Fewer credits"
+                >
+                  −
+                </button>
+                <input
+                  inputMode="numeric"
+                  value={draft}
+                  aria-labelledby="max-credits-label"
+                  onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                  onBlur={() => changeMax(Number(draft))}
+                  onKeyDown={(e) => e.key === "Enter" && changeMax(Number(draft))}
+                />
+                <button
+                  type="button"
+                  onClick={() => changeMax(maxCredits + 1)}
+                  disabled={maxCredits >= MAX_CAP}
+                  aria-label="More credits"
+                >
+                  +
+                </button>
+              </div>
+              <span className="planner-field-note">
+                {MIN_CAP}–{MAX_CAP}. UF full-time is {MIN_CREDITS}+; over 18 needs approval.
+              </span>
+            </div>
             <button className="planner-primary" onClick={generate}>
               Generate options
             </button>

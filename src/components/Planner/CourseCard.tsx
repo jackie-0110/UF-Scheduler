@@ -28,6 +28,11 @@ interface CourseCardProps {
   requirement?: boolean;
   /** A requirement card the student already satisfied */
   done?: boolean;
+  /** From a transcript: finished or being taken now */
+  taken?: "done" | "in-progress";
+  grade?: string;
+  /** Requirements this course filled */
+  counts?: string[];
   onRemove?: () => void;
   onToggleCompleted?: () => void;
 }
@@ -43,6 +48,9 @@ export const CourseCardBody: React.FC<
   credits,
   requirement,
   done,
+  taken,
+  grade,
+  counts,
   onRemove,
   onToggleCompleted,
   dragging,
@@ -52,6 +60,8 @@ export const CourseCardBody: React.FC<
     ? done
       ? "#16a34a"
       : "#a3a3a3"
+    : taken === "in-progress"
+    ? "var(--csu-blue)"
     : violation
     ? "#f59e0b"
     : completed
@@ -67,7 +77,9 @@ export const CourseCardBody: React.FC<
           <span className="planner-card-code">
             {requirement ? "Requirement" : formatCode(code)}
           </span>
-          {onToggleCompleted && !requirement && (
+          {taken === "in-progress" && <span className="planner-card-tag progress">In progress</span>}
+          {taken === "done" && grade && <span className="planner-card-tag grade">{grade}</span>}
+          {onToggleCompleted && !requirement && !taken && (
             <button
               type="button"
               className={`planner-icon-btn${completed ? " active" : ""}`}
@@ -108,6 +120,11 @@ export const CourseCardBody: React.FC<
           {course?.name ?? label ?? "Not in the course data"}
         </p>
         <span className="planner-card-credits">{course?.credits ?? credits ?? 0} CR</span>
+        {counts && counts.length > 0 && (
+          <span className="planner-card-counts" title={counts.join("; ")}>
+            Counts for {counts.join(", ")}
+          </span>
+        )}
       </div>
       {onRemove && (
         <button

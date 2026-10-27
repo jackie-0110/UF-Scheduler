@@ -11,6 +11,7 @@ import {
 } from "@dnd-kit/core";
 import {
   IoCheckmarkCircleOutline,
+  IoClose,
   IoDownloadOutline,
   IoSparklesOutline,
   IoTrashOutline,
@@ -18,19 +19,25 @@ import {
 } from "react-icons/io5";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useCompletedCourses } from "../Cytoscape/usePrereqData";
-import { buildVariantIndex } from "../Cytoscape/prereqs";
+import { buildVariantIndex, formatCode } from "../Cytoscape/prereqs";
 import CatalogSidebar from "./CatalogSidebar";
 import { CourseCardBody } from "./CourseCard";
 import SemesterColumn from "./SemesterColumn";
 import ArrangeDialog from "./ArrangeDialog";
 import ProgressDialog from "./ProgressDialog";
-import { usePlan, usePlannerCatalog } from "./usePlanner";
+import { useNowTerm, usePlan, usePlannerCatalog } from "./usePlanner";
+import { termChoices, termOf, termStatus } from "./terms";
+import { AttrMap, planFromTranscript, SUMMER_REQUIRED, TranscriptPlan } from "./transcriptPlan";
+import { TranscriptRow } from "./transcriptParser";
 import {
-  aliasesOf,
   completedCredits,
+  completedCreditsOffPlan,
   DEGREE_CREDITS,
   isRequirement,
   MIN_CREDITS,
+  itemCredits,
+  lastRegularWithCourses,
+  PlanSemester,
   totalCredits,
   underloadedSemesters,
   validatePlan,
@@ -55,27 +62,46 @@ const Planner: React.FC = () => {
     clearPlan,
     adoptArrangement,
     replaceItems,
+    replaceSemesters,
+    setStart,
+    markSemesterDone,
     setItemDone,
     completeRequirementsThrough,
   } = usePlan();
+  const { now, isAuto, setNow } = useNowTerm();
   const [activeDrag, setActiveDrag] = useState<string | null>(null);
   const [arrangeOpen, setArrangeOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showSummers, setShowSummers] = useState(false);
+  // the plan as it was before a transcript repacked it
+  const [undo, setUndo] = useState<{ before: PlanSemester[]; result: TranscriptPlan } | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor)
   );
 
-  const violations = useMemo(
-    () => (info ? validatePlan(semesters, info, completed, grades) : new Map()),
-    [semesters, info, completed, grades]
-  );
-  const credits = info ? totalCredits(semesters, info) : 0;
-  const doneCredits = info ? completedCredits(semesters, info, completed) : 0;
+  // courses already taken are history: no prerequisite warnings on them
+  const violations = useMemo(() => {
+    if (!info) return new Map();
+    const all = validatePlan(semesters, info, completed, grades);
+    semesters.forEach((semester) =>
+      semester.items.forEach((item) => item.taken && all.delete(item.id))
+    );
+    return all;
+  }, [semesters, info, completed, grades]);
+  // finished courses that aren't on the plan still count toward the degree
+  const offPlan = info ? completedCreditsOffPlan(semesters, info, completed) : 0;
+  const credits = info ? totalCredits(semesters, info) + offPlan : 0;
+  const doneCredits = info ? completedCredits(semesters, info, completed) + offPlan : 0;
   const lightSemesters = info ? underloadedSemesters(semesters, info).length : 0;
+  const summerCredits = info
+    ? semesters
+        .filter((s) => s.summer)
+        .reduce((sum, s) => sum + s.items.reduce((t, item) => t + itemCredits(item, info), 0), 0)
+    : 0;
 
   const loadMajor = (major: string) => {
     if (!major || !info) return;
@@ -85,6 +111,14 @@ const Planner: React.FC = () => {
     }
     replaceItems(buildMajorPlan(major, info, semesters));
   };
+
+  const lastTerm = lastRegularWithCourses(semesters);
+
+  const startChoices = useMemo(() => {
+    const choices = termChoices(now, 15, 3);
+    const start = semesters[0]?.term;
+    return start && !choices.includes(start) ? [start, ...choices] : choices;
+  }, [now, semesters]);
 
   const yearGroups = useMemo(() => {
     const groups: { label: string; items: typeof semesters }[] = [];
@@ -113,7 +147,31 @@ const Planner: React.FC = () => {
     completeRequirementsThrough(index + 1);
   };
 
-  const applyTranscript = (entries: { code: string; grade?: string }[]) => markCompleted(entries);
+  const applyTranscript = (rows: TranscriptRow[], attrs: AttrMap) => {
+    const kept = rows.filter((row) => row.status !== "ignore");
+    markCompleted(
+      kept.filter((row) => row.status === "completed").map((row) => ({ code: row.code, grade: row.grade }))
+    );
+    if (!info) return;
+    const result = planFromTranscript(
+      semesters,
+      kept.map((row) => ({
+        code: row.code,
+        term: row.term,
+        grade: row.grade,
+        inProgress: row.status === "in-progress",
+        examCredit: row.examCredit,
+        credits: row.credits,
+      })),
+      info,
+      attrs,
+      now,
+      completed
+    );
+    setUndo({ before: semesters, result });
+    setShowDetails(false);
+    replaceSemesters(result.semesters);
+  };
 
   const handleDragStart = (event: DragStartEvent) => setActiveDrag(String(event.active.id));
 
@@ -173,12 +231,43 @@ const Planner: React.FC = () => {
           <strong>Degree planner</strong>
           <span>Drag courses into semesters</span>
         </div>
+        <div className="planner-terms" aria-label="Your timeline">
+          <label>
+            <span>Started</span>
+            <select value={semesters[0]?.term} onChange={(e) => setStart(e.target.value)}>
+              {startChoices.map((term) => (
+                <option key={term} value={term}>
+                  {term}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label title={isAuto ? "From today's date" : "You picked this; choose today's term to follow the date again"}>
+            <span>Now</span>
+            <select value={now} onChange={(e) => setNow(e.target.value)}>
+              {termChoices(termOf(new Date()), 6, 6, true).map((term) => (
+                <option key={term} value={term}>
+                  {term}
+                  {term === termOf(new Date()) ? " (today)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <span className="planner-chip">
           Credits <b>{credits}</b> / {DEGREE_CREDITS}
         </span>
         {doneCredits > 0 && (
           <span className="planner-chip done" title="Credits you've already completed">
             {doneCredits} done
+          </span>
+        )}
+        {credits > 0 && (
+          <span
+            className={`planner-chip${summerCredits >= SUMMER_REQUIRED ? " done" : ""}`}
+            title={`Florida requires ${SUMMER_REQUIRED} credits from summer terms if you started with fewer than 60 credits of AP / transfer credit. Counts summer classes taken and planned.`}
+          >
+            Summer <b>{summerCredits}</b> / {SUMMER_REQUIRED}
           </span>
         )}
         {violations.size > 0 ? (
@@ -235,6 +324,73 @@ const Planner: React.FC = () => {
         </button>
       </div>
 
+      {undo && (
+        <div className="planner-banner" role="status">
+          <div className="planner-banner-row">
+            <IoSparklesOutline size={15} aria-hidden />
+            <span>
+              Rebuilt from your transcript: {undo.result.placed} classes placed in the terms you took
+              them, {undo.result.matches.length} requirement
+              {undo.result.matches.length === 1 ? "" : "s"} filled, {undo.result.remaining} left to
+              plan
+              {undo.result.addedYears > 0
+                ? ` (added ${undo.result.addedYears} year${undo.result.addedYears === 1 ? "" : "s"} to fit them)`
+                : ""}
+              .
+              {undo.result.summer.applies && undo.result.summer.credits > 0
+                ? ` Summers hold ${undo.result.summer.credits} credits toward the ${SUMMER_REQUIRED}-credit summer rule.`
+                : ""}
+            </span>
+            <button className="planner-ghost" onClick={() => setShowDetails((v) => !v)}>
+              {showDetails ? "Hide details" : "Details"}
+            </button>
+            <button
+              className="planner-ghost"
+              onClick={() => {
+                replaceSemesters(undo.before);
+                setUndo(null);
+              }}
+            >
+              Undo
+            </button>
+            <button className="planner-icon-btn" onClick={() => setUndo(null)} aria-label="Dismiss">
+              <IoClose size={16} />
+            </button>
+          </div>
+          {showDetails && (
+            <div className="planner-banner-details">
+              {undo.result.matches.length > 0 && (
+                <div>
+                  <span className="csu-label">Counted toward</span>
+                  <ul>
+                    {undo.result.matches.map((m) => (
+                      <li key={m.code + m.requirement}>
+                        <b>{formatCode(m.code)}</b> → {m.requirement}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {undo.result.examCredit.length > 0 && (
+                <div>
+                  <span className="csu-label">AP / transfer credit</span>
+                  <p>{undo.result.examCredit.map(formatCode).join(", ")}</p>
+                </div>
+              )}
+              {undo.result.extra.length > 0 && (
+                <div>
+                  <span className="csu-label">Didn't fill a listed requirement</span>
+                  <p>
+                    {undo.result.extra.map(formatCode).join(", ")}. These may still count as
+                    electives or toward a major-specific requirement; check your degree audit.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="planner-body">
           <CatalogSidebar
@@ -254,6 +410,14 @@ const Planner: React.FC = () => {
                     <SemesterColumn
                       key={semester.id}
                       semester={semester}
+                      status={termStatus(semester.term, now)}
+                      isLast={semester === lastTerm}
+                      onMarkDone={() => {
+                        markCompleted(
+                          semester.items.filter((item) => !isRequirement(item)).map((item) => ({ code: item.code }))
+                        );
+                        markSemesterDone(semester.id);
+                      }}
                       info={info}
                       violations={violations}
                       completed={completed}
@@ -276,6 +440,7 @@ const Planner: React.FC = () => {
       {progressOpen && (
         <ProgressDialog
           semesters={semesters}
+          nextOpen={now}
           info={info}
           completed={completed}
           onLoadMajor={loadMajor}

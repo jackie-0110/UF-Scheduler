@@ -10,6 +10,11 @@ export interface PlanItem {
   credits?: number;
   /** Requirement cards only: the student has already satisfied it */
   done?: boolean;
+  /** Placed from a transcript: finished, or being taken this term */
+  taken?: "done" | "in-progress";
+  grade?: string;
+  /** Requirement cards this taken course filled, e.g. "Quest 1 (Gen Ed Humanities)" */
+  counts?: string[];
 }
 
 export const GRADE_ORDER = ["E", "D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A"];
@@ -191,13 +196,21 @@ export function completedCredits(
   );
 }
 
-/** Semesters that have courses but fall short of full-time (12 credits). */
-export const underloadedSemesters = (semesters: PlanSemester[], info: PrereqMap) =>
-  semesters.filter((semester) => {
-    if (semester.summer) return false;
+/**
+ * Semesters that have courses but fall short of full-time (12 credits). The last
+ * one is left out: a graduating student can take a reduced load.
+ */
+export const underloadedSemesters = (semesters: PlanSemester[], info: PrereqMap) => {
+  const last = lastRegularWithCourses(semesters);
+  return semesters.filter((semester) => {
+    if (semester.summer || semester === last) return false;
     const credits = semesterCredits(semester, info);
     return credits > 0 && credits < MIN_CREDITS;
   });
+};
+
+export const lastRegularWithCourses = (semesters: PlanSemester[]) =>
+  [...semesters].reverse().find((s) => !s.summer && s.items.length > 0);
 
 export type ArrangeStrategy = "early" | "balanced";
 
@@ -245,7 +258,9 @@ export function arrangeCourses(
   const visit = (code: string) => {
     if (state.has(code)) return;
     state.set(code, "visiting");
-    info[code]?.prereq.forEach((group) =>
+    // coreqs too: they can't be placed before what they're paired with
+    const course = info[code];
+    [...(course?.prereq ?? []), ...(course?.coreq ?? []), ...(course?.concurrent ?? [])].forEach((group) =>
       group.forEach((prereq) => {
         const planned = planCodeFor.get(prereq);
         if (planned && planned !== code) visit(planned);
@@ -348,4 +363,38 @@ export function arrangeCourses(
     warnings: violationCount(),
     underMin: loads.filter((load, i) => allowed[i] && load > 0 && load < MIN_CREDITS).length,
   };
+}
+
+/**
+ * True when the courses a requirement card names are done: any of them for
+ * "ENC 1101 or ENC 1102", all of them for "PHY 2048 & 2048L".
+ */
+export function requirementMet(item: PlanItem, completed: Set<string>) {
+  const label = item.label ?? "";
+  const codes = codesInLabel(label);
+  if (codes.length === 0) return false;
+  const done = (code: string) => aliasesOf(code).some((alias) => completed.has(alias));
+  return /\bor\b/i.test(label) ? codes.some(done) : codes.every(done);
+}
+
+/** Credits for finished courses that aren't on the plan (COP3502 and COP3502C count once). */
+export function completedCreditsOffPlan(
+  semesters: PlanSemester[],
+  info: PrereqMap,
+  completed: Set<string>
+) {
+  const onPlan = withAliases(
+    semesters.flatMap((semester) => semester.items.filter((item) => !isRequirement(item)).map((item) => item.code))
+  );
+  const counted = new Set<string>();
+  let sum = 0;
+  completed.forEach((code) => {
+    const key = code.replace(/(\d)C$/, "$1");
+    if (counted.has(key) || onPlan.has(code)) return;
+    const credits = aliasesOf(code).map((alias) => info[alias]?.credits).find((c) => c != null);
+    if (credits == null) return;
+    counted.add(key);
+    sum += credits;
+  });
+  return sum;
 }
