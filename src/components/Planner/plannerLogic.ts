@@ -351,3 +351,37 @@ export function arrangeCourses(
     underMin: loads.filter((load, i) => allowed[i] && load > 0 && load < MIN_CREDITS).length,
   };
 }
+
+/**
+ * True when the courses a requirement card names are done: any of them for
+ * "ENC 1101 or ENC 1102", all of them for "PHY 2048 & 2048L".
+ */
+export function requirementMet(item: PlanItem, completed: Set<string>) {
+  const label = item.label ?? "";
+  const codes = codesInLabel(label);
+  if (codes.length === 0) return false;
+  const done = (code: string) => aliasesOf(code).some((alias) => completed.has(alias));
+  return /\bor\b/i.test(label) ? codes.some(done) : codes.every(done);
+}
+
+/** Credits for finished courses that aren't on the plan (COP3502 and COP3502C count once). */
+export function completedCreditsOffPlan(
+  semesters: PlanSemester[],
+  info: PrereqMap,
+  completed: Set<string>
+) {
+  const onPlan = withAliases(
+    semesters.flatMap((semester) => semester.items.filter((item) => !isRequirement(item)).map((item) => item.code))
+  );
+  const counted = new Set<string>();
+  let sum = 0;
+  completed.forEach((code) => {
+    const key = code.replace(/(\d)C$/, "$1");
+    if (counted.has(key) || onPlan.has(code)) return;
+    const credits = aliasesOf(code).map((alias) => info[alias]?.credits).find((c) => c != null);
+    if (credits == null) return;
+    counted.add(key);
+    sum += credits;
+  });
+  return sum;
+}
