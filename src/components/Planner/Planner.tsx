@@ -52,7 +52,8 @@ const Planner: React.FC = () => {
   const { info, loading, error } = usePlannerCatalog();
   // Marking COP3502C completed also marks COP3502, so the prerequisite graph agrees
   const variants = useMemo(() => (info ? buildVariantIndex(info) : NO_VARIANTS), [info]);
-  const { completed, grades, setCourseCompleted, markCompleted } = useCompletedCourses(variants);
+  const { completed, grades, credits: transcriptCredits, setCourseCompleted, markCompleted } =
+    useCompletedCourses(variants);
   const {
     semesters,
     placedCodes,
@@ -93,7 +94,7 @@ const Planner: React.FC = () => {
     return all;
   }, [semesters, info, completed, grades]);
   // finished courses that aren't on the plan still count toward the degree
-  const offPlan = info ? completedCreditsOffPlan(semesters, info, completed) : 0;
+  const offPlan = info ? completedCreditsOffPlan(semesters, info, completed, transcriptCredits) : 0;
   const credits = info ? totalCredits(semesters, info) + offPlan : 0;
   const doneCredits = info ? completedCredits(semesters, info, completed) + offPlan : 0;
   const lightSemesters = info ? underloadedSemesters(semesters, info).length : 0;
@@ -150,7 +151,9 @@ const Planner: React.FC = () => {
   const applyTranscript = (rows: TranscriptRow[], attrs: AttrMap) => {
     const kept = rows.filter((row) => row.status !== "ignore");
     markCompleted(
-      kept.filter((row) => row.status === "completed").map((row) => ({ code: row.code, grade: row.grade }))
+      kept
+        .filter((row) => row.status === "completed")
+        .map((row) => ({ code: row.code, grade: row.grade, credits: row.credits }))
     );
     if (!info) return;
     const result = planFromTranscript(

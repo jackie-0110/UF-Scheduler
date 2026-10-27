@@ -381,7 +381,9 @@ export function requirementMet(item: PlanItem, completed: Set<string>) {
 export function completedCreditsOffPlan(
   semesters: PlanSemester[],
   info: PrereqMap,
-  completed: Set<string>
+  completed: Set<string>,
+  /** Credits a transcript listed, used first */
+  known: Record<string, number> = {}
 ) {
   const onPlan = withAliases(
     semesters.flatMap((semester) => semester.items.filter((item) => !isRequirement(item)).map((item) => item.code))
@@ -391,7 +393,9 @@ export function completedCreditsOffPlan(
   completed.forEach((code) => {
     const key = code.replace(/(\d)C$/, "$1");
     if (counted.has(key) || onPlan.has(code)) return;
-    const credits = aliasesOf(code).map((alias) => info[alias]?.credits).find((c) => c != null);
+    const credits = aliasesOf(code)
+      .map((alias) => known[alias] ?? info[alias]?.credits)
+      .find((c) => c != null);
     if (credits == null) return;
     counted.add(key);
     sum += credits;

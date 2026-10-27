@@ -126,8 +126,8 @@ export function planFromTranscript(
         code: t.code,
         taken: t.inProgress ? "in-progress" : "done",
         grade: t.grade,
-        // the transcript's own credits, for classes missing from the catalog
-        credits: info[t.code] ? undefined : t.credits ?? 3,
+        // the transcript's own credits, for variable-credit classes or ones missing from the catalog
+        credits: info[t.code]?.credits != null ? undefined : t.credits ?? 3,
       };
       aliasesOf(t.code).forEach((alias) => takenItems.set(alias, item));
       return item;
@@ -163,6 +163,10 @@ export function planFromTranscript(
     use(item.code);
     return false;
   });
+
+  // what the transcript says a class was worth beats the catalog (variable-credit research, transfer)
+  const takenCredits = new Map(taken.map((t) => [t.code, t.credits ?? info[t.code]?.credits ?? 3] as [string, number]));
+  const creditsOf = (code: string) => takenCredits.get(code) ?? info[code]?.credits ?? 3;
 
   const matches: { code: string; requirement: string }[] = [];
   const fill = (card: PlanItem, code: string) => {
@@ -208,12 +212,11 @@ export function planFromTranscript(
   const done = new Set(takenCodes);
   let addedYears = 0;
   // Florida: students who start with under 60 credits need 9 from summer terms
-  const creditsOf = (t: TakenCourse) => info[t.code]?.credits ?? t.credits ?? 3;
-  const examCredits = examCredit.reduce((sum, t) => sum + creditsOf(t), 0);
+  const examCredits = examCredit.reduce((sum, t) => sum + creditsOf(t.code), 0);
   const summerRule = examCredits < 60;
   const takenSummer = inClass
     .filter((t) => t.term!.startsWith("Summer"))
-    .reduce((sum, t) => sum + creditsOf(t), 0);
+    .reduce((sum, t) => sum + creditsOf(t.code), 0);
 
   const build = (): PlanSemester[] => {
     const isOpen = timeline.map((s, i) => !locked[i]);
