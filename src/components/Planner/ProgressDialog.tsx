@@ -4,15 +4,19 @@ import { formatCode, PrereqMap } from "../Cytoscape/prereqs";
 import { aliasesOf, isRequirement, meetsMinimumGrade, PlanItem, PlanSemester } from "./plannerLogic";
 import { majorNames } from "./majorPlans";
 import { parseTranscript, TranscriptRow, TranscriptStatus } from "./transcriptParser";
+import { AttrMap } from "./transcriptPlan";
+import { fetchCourseAttrs } from "./courseAttrs";
 
 interface ProgressDialogProps {
   semesters: PlanSemester[];
+  /** First term the rest of the plan can go in, for the explanation */
+  nextOpen: string;
   info: PrereqMap;
   completed: Set<string>;
   onLoadMajor: (major: string) => void;
   onSetItemDone: (item: PlanItem, done: boolean) => void;
   onCompleteThrough: (semesterIndex: number) => void;
-  onApplyTranscript: (entries: { code: string; grade?: string }[]) => void;
+  onApplyTranscript: (rows: TranscriptRow[], attrs: AttrMap) => void;
   onClose: () => void;
 }
 
@@ -20,6 +24,7 @@ type Tab = "checklist" | "transcript";
 
 const ProgressDialog: React.FC<ProgressDialogProps> = ({
   semesters,
+  nextOpen,
   info,
   completed,
   onLoadMajor,
@@ -32,6 +37,7 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
   const [text, setText] = useState("");
   const [rows, setRows] = useState<TranscriptRow[] | null>(null);
   const [applied, setApplied] = useState<number | null>(null);
+  const [attrs, setAttrs] = useState<AttrMap | null>(null);
 
   const hasPlan = semesters.some((semester) => semester.items.length > 0);
   const isDone = (item: PlanItem) =>
@@ -39,7 +45,13 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
 
   const readTranscript = () => {
     setApplied(null);
-    setRows(parseTranscript(text, info));
+    const parsed = parseTranscript(text, info);
+    setRows(parsed);
+    // gen ed / Quest tags decide which requirement cards a class fills
+    setAttrs(null);
+    fetchCourseAttrs(parsed.map((row) => row.code))
+      .then(setAttrs)
+      .catch(() => setAttrs({}));
   };
 
   const setStatus = (code: string, status: TranscriptStatus) =>
@@ -47,11 +59,8 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
 
   const apply = () => {
     if (!rows) return;
-    const entries = rows
-      .filter((row) => row.status !== "ignore")
-      .map((row) => ({ code: row.code, grade: row.status === "completed" ? row.grade : undefined }));
-    onApplyTranscript(entries);
-    setApplied(entries.length);
+    onApplyTranscript(rows, attrs ?? {});
+    setApplied(rows.filter((row) => row.status !== "ignore").length);
   };
 
   const counts = rows
@@ -203,6 +212,7 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
                   <table className="planner-table">
                     <thead>
                       <tr>
+                        <th>Term</th>
                         <th>Course</th>
                         <th>Grade</th>
                         <th>Counts as</th>
@@ -214,6 +224,9 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
                           row.status === "completed" && !meetsMinimumGrade(row.grade, "C");
                         return (
                           <tr key={row.code}>
+                            <td className="planner-table-term">
+                              {row.examCredit ? "AP / transfer" : row.term ?? "—"}
+                            </td>
                             <td>
                               <strong>{formatCode(row.code)}</strong>
                               <div className="planner-table-sub">
@@ -244,12 +257,19 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
                     </tbody>
                   </table>
                 </div>
-                <button className="planner-primary" onClick={apply}>
-                  Apply to my plan
-                </button>
+                <div className="planner-apply-row">
+                  <button className="planner-primary" onClick={apply} disabled={!attrs}>
+                    {attrs ? "Rebuild my plan from this" : "Checking gen ed tags…"}
+                  </button>
+                  <span className="planner-hint">
+                    Each term you've taken gets exactly these classes. Requirements they cover drop
+                    out, and the rest is re-planned into the terms after {nextOpen} (or from it, if you have no classes in progress). You can undo it.
+                  </span>
+                </div>
                 {applied !== null && (
                   <p className="planner-ok">
-                    Marked {applied} courses as done. Close this window to see your plan update.
+                    Done: {applied} classes placed. Close this window to see your plan; the banner at
+                    the top shows what changed.
                   </p>
                 )}
               </>
