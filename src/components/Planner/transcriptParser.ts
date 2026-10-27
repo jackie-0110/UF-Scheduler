@@ -10,6 +10,12 @@ export interface TranscriptRow {
   grade?: string;
   status: TranscriptStatus;
   inCatalog: boolean;
+  /** "Fall 2025" when the transcript says which term it was taken */
+  term?: string;
+  /** AP/IB/AICE, transfer or other credit not earned in a UF class */
+  examCredit?: boolean;
+  /** Credits from the transcript, used when the catalog doesn't have the course */
+  credits?: number;
   /** Raw line from the pasted text, shown so mismatches are easy to spot */
   line: string;
 }
@@ -20,14 +26,24 @@ const GRADE_TOKENS = new Set([
   "W", "WF", "I", "IP", "S", "U", "P", "NG", "TR", "AP", "CR", "XF",
 ]);
 const IN_PROGRESS_HEADER = /\b(in progress|currently enrolled|current term|registered)\b/i;
-const SECTION_RESET = /^(fall|spring|summer)\s+\d{4}|transcript totals|courses? (completed|taken)/i;
+// "Summer A 2026", "Summer C 2026" and plain "Summer 2026" are all one summer term here
+const SESSION = "(?:\\s+(?:session\\s+)?[abc])?";
+const SECTION_RESET = new RegExp(
+  `^(fall|spring|summer)${SESSION}\\s+\\d{4}|transcript totals|courses? (completed|taken)`,
+  "i"
+);
 
 /** The catalog sometimes lists COP3502C where a transcript says COP 3502 (and vice versa). */
 const resolveCode = (code: string, info: PrereqMap) =>
   info[code] ? code : info[`${code}C`] ? `${code}C` : code;
 
-const TERM_LINE = /^(fall|spring|summer)\s+\d{4}\s*$/i;
-const CREDITS_THEN_GRADE = /(?:^|[\s|])\d{1,2}(?:\.\d+)?(?:[\s|]+)([A-Z][+-]?|--)?(?=[\s|]|$)/;
+const TERM_START = new RegExp(`^(fall|spring|summer)${SESSION}\\s+(\\d{4})\\b`, "i");
+const cap = (word: string) => word[0].toUpperCase() + word.slice(1).toLowerCase();
+// grades UF posts for credit by exam or transfer rather than a class taken here
+const EXAM_GRADES = new Set(["P", "TR", "AP", "CR"]);
+
+const TERM_LINE = new RegExp(`^(fall|spring|summer)${SESSION}\\s+\\d{4}\\s*$`, "i");
+const CREDITS_THEN_GRADE = /(?:^|[\s|])(\d{1,2}(?:\.\d+)?)(?:[\s|]+)([A-Z][+-]?|--)?(?=[\s|]|$)/;
 
 /**
  * Pasting the ONE.UF "Course History" table gives either one tab-separated row per course or
@@ -55,9 +71,12 @@ function toRecords(text: string): string[] {
 export function parseTranscript(text: string, info: PrereqMap): TranscriptRow[] {
   const rows = new Map<string, TranscriptRow>();
   let inProgressSection = false;
+  let currentTerm: string | undefined;
 
   toRecords(text).forEach((record) => {
     const line = record;
+    const termMatch = line.match(TERM_START);
+    if (termMatch) currentTerm = `${cap(termMatch[1])} ${termMatch[2]}`;
     const match = line.match(CODE_RE);
     if (!match) {
       // headers like "Courses In Progress" mark the ungraded rows that follow
@@ -71,7 +90,8 @@ export function parseTranscript(text: string, info: PrereqMap): TranscriptRow[] 
     const tokens = rest.split(/[\s,;|]+/).filter(Boolean);
     const creditsCell = rest.match(CREDITS_THEN_GRADE);
     const hasCredits = !!creditsCell;
-    const cellGrade = creditsCell?.[1] && creditsCell[1] !== "--" ? creditsCell[1] : undefined;
+    const cellGrade = creditsCell?.[2] && creditsCell[2] !== "--" ? creditsCell[2] : undefined;
+    const credits = creditsCell ? Number(creditsCell[1]) : undefined;
     const grade =
       cellGrade && GRADE_TOKENS.has(cellGrade)
         ? cellGrade
@@ -96,6 +116,9 @@ export function parseTranscript(text: string, info: PrereqMap): TranscriptRow[] 
       status,
       inCatalog: !!info[code],
       line: line.replace(/\t/g, "  "),
+      term: currentTerm,
+      credits,
+      examCredit: !!grade && EXAM_GRADES.has(grade),
     });
   });
 
