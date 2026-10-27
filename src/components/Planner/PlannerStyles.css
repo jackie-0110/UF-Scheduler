@@ -794,3 +794,172 @@
   background: #dcfce7;
   color: #15803d;
 }
+
+/* ── Timeline: where you started and where you are ── */
+
+.planner-terms {
+  display: flex;
+  gap: 6px;
+}
+
+.planner-terms label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid var(--csu-line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--csu-muted);
+}
+
+.planner-terms select {
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--csu-ink);
+}
+
+.planner-term-tag {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.planner-term-tag.now {
+  background: var(--csu-blue);
+  color: #fff;
+}
+
+.planner-term-tag.done {
+  background: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.planner-term-tag.action {
+  background: var(--csu-surface);
+  box-shadow: inset 0 0 0 1px var(--csu-line);
+  color: var(--csu-ink);
+  cursor: pointer;
+}
+
+.planner-term-tag.action:hover {
+  box-shadow: inset 0 0 0 1px var(--csu-blue);
+  color: var(--csu-blue);
+}
+
+/* finished terms recede so the eye goes to what's left */
+.planner-semester.past .planner-dropzone {
+  background: var(--csu-subtle);
+}
+
+.planner-semester.past .planner-card {
+  background: transparent;
+  box-shadow: none;
+}
+
+.planner-semester.current .planner-dropzone {
+  box-shadow: inset 0 0 0 2px var(--csu-blue);
+}
+
+.planner-card-tag {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.planner-card-tag.grade {
+  background: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.planner-card-tag.progress {
+  background: var(--csu-blue-tint);
+  color: var(--csu-blue);
+}
+
+.planner-card-counts {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 10.5px;
+  color: var(--csu-good);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── What a transcript changed ── */
+
+.planner-banner {
+  margin: 8px 16px 0;
+  padding: 8px 8px 8px 14px;
+  border-radius: 10px;
+  background: var(--csu-blue-tint);
+  color: var(--csu-blue);
+  font-size: 0.85rem;
+}
+
+.planner-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.planner-banner-row span {
+  flex: 1;
+  color: var(--csu-ink);
+}
+
+.planner-banner-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin-top: 8px;
+  padding: 10px 4px 4px 25px;
+  border-top: 1px solid rgba(15, 68, 205, 0.15);
+  color: var(--csu-ink);
+}
+
+.planner-banner-details ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.planner-banner-details li,
+.planner-banner-details p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+}
+
+.planner-table-term {
+  white-space: nowrap;
+  color: var(--csu-muted);
+}
+
+.planner-apply-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.planner-apply-row .planner-hint {
+  margin: 0;
+  font-size: 12px;
+}
