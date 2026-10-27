@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePrereqInfo } from "../Cytoscape/usePrereqData";
 import { PrereqMap } from "../Cytoscape/prereqs";
 import { createDefaultSemesters, isRequirement, newItemId, PlanItem, PlanSemester } from "./plannerLogic";
+import { isTerm, retime, termOf } from "./terms";
 
 const PLAN_KEY = "plannerPlan";
+const NOW_KEY = "plannerNow";
 const START_YEAR = 2026;
 
 /** Courses from every term the backend has data for; the newest term wins on conflicts. */
@@ -130,6 +132,31 @@ export function usePlan() {
     );
   }, []);
 
+  /** Replaces the whole timeline (a transcript can move the start or add years). */
+  const replaceSemesters = useCallback((next: PlanSemester[]) => setSemesters(next), []);
+
+  /** Starts the plan at another term; each course keeps its relative semester. */
+  const setStart = useCallback(
+    (term: string) => setSemesters((prev) => (prev[0]?.term === term ? prev : retime(prev, term))),
+    []
+  );
+
+  /** Marks every course in a term finished and every requirement card there met. */
+  const markSemesterDone = useCallback((semesterId: string) => {
+    setSemesters((prev) =>
+      prev.map((s) =>
+        s.id === semesterId
+          ? {
+              ...s,
+              items: s.items.map((item) =>
+                isRequirement(item) ? { ...item, done: true } : { ...item, taken: "done" as const }
+              ),
+            }
+          : s
+      )
+    );
+  }, []);
+
   /** Replaces every semester's items (used when loading a major's model plan). */
   const replaceItems = useCallback((items: PlanItem[][]) => {
     setSemesters((prev) => prev.map((s, index) => ({ ...s, items: items[index] ?? [] })));
@@ -144,7 +171,36 @@ export function usePlan() {
     clearPlan,
     adoptArrangement,
     replaceItems,
+    replaceSemesters,
+    setStart,
+    markSemesterDone,
     setItemDone,
     completeRequirementsThrough,
   };
+}
+
+/** The term you're in: today's by default, or one you picked. */
+export function useNowTerm() {
+  const [picked, setPicked] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem(NOW_KEY);
+      return stored && isTerm(stored) ? stored : null;
+    } catch {
+      return null;
+    }
+  });
+  const auto = termOf(new Date());
+  const setNow = useCallback(
+    (term: string | null) => {
+      setPicked(term === auto ? null : term);
+      try {
+        if (term && term !== auto) localStorage.setItem(NOW_KEY, term);
+        else localStorage.removeItem(NOW_KEY);
+      } catch {
+        // storage unavailable
+      }
+    },
+    [auto]
+  );
+  return { now: picked ?? auto, isAuto: !picked, setNow };
 }
