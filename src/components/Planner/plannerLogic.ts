@@ -245,7 +245,9 @@ export function arrangeCourses(
   const visit = (code: string) => {
     if (state.has(code)) return;
     state.set(code, "visiting");
-    info[code]?.prereq.forEach((group) =>
+    // coreqs too: they can't be placed before what they're paired with
+    const course = info[code];
+    [...(course?.prereq ?? []), ...(course?.coreq ?? []), ...(course?.concurrent ?? [])].forEach((group) =>
       group.forEach((prereq) => {
         const planned = planCodeFor.get(prereq);
         if (planned && planned !== code) visit(planned);
