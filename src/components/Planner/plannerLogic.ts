@@ -191,13 +191,21 @@ export function completedCredits(
   );
 }
 
-/** Semesters that have courses but fall short of full-time (12 credits). */
-export const underloadedSemesters = (semesters: PlanSemester[], info: PrereqMap) =>
-  semesters.filter((semester) => {
-    if (semester.summer) return false;
+/**
+ * Semesters that have courses but fall short of full-time (12 credits). The last
+ * one is left out: a graduating student can take a reduced load.
+ */
+export const underloadedSemesters = (semesters: PlanSemester[], info: PrereqMap) => {
+  const last = lastRegularWithCourses(semesters);
+  return semesters.filter((semester) => {
+    if (semester.summer || semester === last) return false;
     const credits = semesterCredits(semester, info);
     return credits > 0 && credits < MIN_CREDITS;
   });
+};
+
+export const lastRegularWithCourses = (semesters: PlanSemester[]) =>
+  [...semesters].reverse().find((s) => !s.summer && s.items.length > 0);
 
 export type ArrangeStrategy = "early" | "balanced";
 
