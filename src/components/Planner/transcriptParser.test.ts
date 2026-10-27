@@ -87,12 +87,14 @@ describe("parseTranscript course history table", () => {
     "Fall 2025\tMAC 2311\tCalculus 1\t4\tP\tRepeat Code",
   ].join("\n");
 
-  it("reads tab-separated rows, counts P as completed, skips L000 placeholders", () => {
+  it("reads tab-separated rows, counts P as completed, keeps L000 transfer credit, skips repeats", () => {
     const rows = parseTranscript(history, info);
-    expect(rows.map((r) => [r.code, r.grade, r.status])).toEqual([
-      ["COP3502C", "A", "completed"],
-      ["MAC2311", "P", "completed"],
+    expect(rows.map((r) => [r.code, r.grade, r.status, r.examCredit])).toEqual([
+      ["COP3502C", "A", "completed", false],
+      ["MAC2311", "P", "completed", true],
+      ["AMLL000", "B", "completed", true],
     ]);
+    expect(rows[2].credits).toBe(3);
   });
 
   it("reads one cell per line", () => {
@@ -142,4 +144,61 @@ describe("summer terms", () => {
 
 it("keeps the transcript's credits for each class", () => {
   expect(parseTranscript("Fall 2025\tSPN 1130\tBeginning Spanish 1\t5\tB+\t--", info)[0].credits).toBe(5);
+});
+
+describe("ONE.UF course history (term line above each course)", () => {
+  // shape of a real paste: prior credit filed under the first term in one subject-sorted run,
+  // then that term's UF classes, "Spr" / "Sum" terms, repeat notes and ungraded current classes
+  const paste = [
+    "Fall 2025", "", "AML L000\tTransfer AML Course\t3\tB\tNo data available",
+    "Fall 2025", "", "ENC 1101\tExpos and Argu Writing\t3\tP\tWriting Requirement 6000 Words",
+    "Fall 2025", "", "Repeat Code: R – Repeated Course (count in GPA but no credit awarded)", "",
+    "MAC 2311\tAnalyt Geom and Calc 1\t4\tP\tMath Requirement",
+    "Fall 2025", "", "MAC 2311\tAnalyt Geom and Calc 1\t4\tA\tMath Requirement",
+    "Fall 2025", "", "MAS U000\tTransfer MAS Course\t2\tA\tNo data available",
+    "Fall 2025", "", "MAS U000\tTransfer MAS Course\t3\tA\tNo data available",
+    "Fall 2025", "", "MAS 4105\tLinear Algebra 1\t4\tA\tNo data available",
+    "Fall 2025", "", "PHY 2048\tPhysics With Calc 1\t3\tB\tNo data available",
+    "Fall 2025", "", "COP 3502C\tProg Fundamentals 1\t4\tA\tNo data available",
+    "Fall 2025", "", "EGN 4912\tEngineering Research\t2\tS\tNo data available",
+    "Spr 2026", "", "COP 3503C\tProg Fundamentals 2\t4\tA\tNo data available",
+    "Sum 2026", "", "COP 3530\tData Struc/Algorithms\t3\tA\tMath Requirement",
+    "Fall 2026", "", "CEN 3031\tIntro Software Engr\t3\tNo data available\tMath Requirement",
+  ].join("\n");
+  const rows = parseTranscript(paste, info);
+  const row = (code: string) => rows.find((r) => r.code === code)!;
+
+  it("reads Spr / Sum terms", () => {
+    expect(row("COP3503C").term).toBe("Spring 2026");
+    expect(row("COP3530").term).toBe("Summer 2026");
+  });
+
+  it("an ungraded class with credits is in progress", () => {
+    expect(row("CEN3031").status).toBe("in-progress");
+    expect(row("CEN3031").grade).toBeUndefined();
+  });
+
+  it("repeat attempts earn nothing; the attempt that counts is kept once", () => {
+    expect(rows.filter((r) => r.code === "MAC2311")).toHaveLength(1);
+    expect(row("MAC2311").grade).toBe("A");
+  });
+
+  it("keeps each transfer placeholder with its own credits", () => {
+    expect([row("MASU000").credits, row("MASU000-2").credits]).toEqual([2, 3]);
+  });
+
+  it("the first subject-sorted run of an overfull first term is prior credit", () => {
+    ["AMLL000", "ENC1101", "MAC2311", "MASU000", "MAS4105", "PHY2048"].forEach((code) =>
+      expect([code, row(code).examCredit]).toEqual([code, true])
+    );
+    ["COP3502C", "EGN4912"].forEach((code) => expect([code, row(code).examCredit]).toEqual([code, false]));
+  });
+
+  it("an ordinary first term is left alone", () => {
+    const light = parseTranscript(
+      "Fall 2025\nMAC 2311\tCalc 1\t4\tA\t--\nFall 2025\nCOP 3502\tProg 1\t4\tA\t--\nFall 2025\nAML L000\tTransfer\t3\tB\t--",
+      info
+    );
+    expect(light.find((r) => r.code === "MAC2311")!.examCredit).toBe(false);
+  });
 });

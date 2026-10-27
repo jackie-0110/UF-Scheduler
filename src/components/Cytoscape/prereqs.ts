@@ -48,7 +48,8 @@ export const baseCode = (code: string) => code.replace(/[A-Z]+$/, "");
 /** Graph node ids look like "COP\n3502". */
 export const nodeIdToCode = (id: string) => id.replace(/\s+/g, "");
 
-export const formatCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
+// "MASU000-2" is a second transfer placeholder with the same code; show it as "MAS U000"
+export const formatCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3).replace(/-\d+$/, "")}`;
 
 export function buildVariantIndex(info: PrereqMap): Map<string, string[]> {
   const index = new Map<string, Set<string>>();

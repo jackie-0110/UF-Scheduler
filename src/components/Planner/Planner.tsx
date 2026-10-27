@@ -373,7 +373,7 @@ const Planner: React.FC = () => {
               )}
               {undo.result.examCredit.length > 0 && (
                 <div>
-                  <span className="csu-label">AP / transfer credit</span>
+                  <span className="csu-label">Prior credit (AP, transfer, dual enrollment)</span>
                   <p>{undo.result.examCredit.map(formatCode).join(", ")}</p>
                 </div>
               )}
