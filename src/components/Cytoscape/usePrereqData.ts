@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { API_URLS } from "../../config/api";
-import { baseCode, buildUnlockIndex, buildVariantIndex, PrereqMap } from "./prereqs";
+import { baseCode, buildUnlockIndex, buildVariantIndex, normalizeCredits, PrereqMap } from "./prereqs";
 
 const COMPLETED_KEY = "completedCourses";
 const GRADES_KEY = "completedGrades";
@@ -12,7 +12,7 @@ const STORE_PREFIX = "prereqInfo:";
 const readStored = (key: string): PrereqMap | null => {
   try {
     const stored = localStorage.getItem(STORE_PREFIX + key);
-    return stored ? (JSON.parse(stored) as PrereqMap) : null;
+    return stored ? normalizeCredits(JSON.parse(stored) as PrereqMap) : null;
   } catch {
     return null;
   }
@@ -26,6 +26,7 @@ export function fetchPrereqs(term: string, year: string): Promise<PrereqMap> {
   const request = axios
     .get<PrereqMap>(API_URLS.GET_PREREQS, { params: { term, year } })
     .then((response) => {
+      normalizeCredits(response.data);
       cache.set(key, response.data);
       try {
         localStorage.setItem(STORE_PREFIX + key, JSON.stringify(response.data));

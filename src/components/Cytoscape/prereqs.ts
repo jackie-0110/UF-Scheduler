@@ -23,6 +23,17 @@ export interface PrereqInfo {
 
 export type PrereqMap = Record<string, PrereqInfo>;
 
+/** The API sends "VAR" for variable-credit courses and ".5" as text; keep credits numeric. */
+export function normalizeCredits(map: PrereqMap): PrereqMap {
+  Object.values(map).forEach((course) => {
+    const raw = course.credits as unknown;
+    if (typeof raw === "number" || raw == null) return;
+    const value = Number(raw);
+    course.credits = Number.isFinite(value) ? value : null;
+  });
+  return map;
+}
+
 export type CourseStatus = "completed" | "eligible" | "almost" | "locked" | "unknown";
 
 export interface CourseEvaluation {
