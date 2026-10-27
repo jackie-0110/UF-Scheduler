@@ -257,9 +257,19 @@
 
 .planner-semester-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
   padding: 0 2px 4px;
+}
+
+.planner-semester-head > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  row-gap: 2px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .planner-season {
@@ -274,6 +284,8 @@
 }
 
 .planner-credit-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 2px 7px;
   border-radius: 999px;
   background: var(--csu-blue-tint);
