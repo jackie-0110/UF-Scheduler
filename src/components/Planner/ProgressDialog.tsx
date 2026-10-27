@@ -3,7 +3,7 @@ import { IoClose } from "react-icons/io5";
 import { formatCode, PrereqMap } from "../Cytoscape/prereqs";
 import { aliasesOf, isRequirement, meetsMinimumGrade, PlanItem, PlanSemester } from "./plannerLogic";
 import { majorNames } from "./majorPlans";
-import { parseTranscript, TranscriptRow, TranscriptStatus } from "./transcriptParser";
+import { isTransferCode, parseTranscript, TranscriptRow, TranscriptStatus } from "./transcriptParser";
 import { AttrMap } from "./transcriptPlan";
 import { fetchCourseAttrs } from "./courseAttrs";
 
@@ -177,8 +177,8 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
         {tab === "transcript" && (
           <>
             <p className="planner-hint">
-              In ONE.UF open Course History, select the table, copy, and paste it here. AP/IB/AICE
-              credit (grade P) counts as completed and repeat-code rows are skipped.
+              In ONE.UF open Course History, select the table, copy, and paste it here. AP, transfer
+              and dual-enrollment credit counts as completed; repeat-code rows are skipped.
             </p>
             <textarea
               className="planner-textarea"
@@ -225,13 +225,14 @@ const ProgressDialog: React.FC<ProgressDialogProps> = ({
                         return (
                           <tr key={row.code}>
                             <td className="planner-table-term">
-                              {row.examCredit ? "AP / transfer" : row.term ?? "—"}
+                              {row.examCredit ? "Prior credit" : row.term ?? "—"}
                             </td>
                             <td>
                               <strong>{formatCode(row.code)}</strong>
                               <div className="planner-table-sub">
                                 {row.title || "Unknown title"}
-                                {!row.inCatalog && " · not in this term's catalog"}
+                                {!row.inCatalog &&
+                                  (isTransferCode(row.code) ? " · no UF equivalent" : " · not in this term's catalog")}
                               </div>
                             </td>
                             <td>

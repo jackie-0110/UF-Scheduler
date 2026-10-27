@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { API_URLS } from "../../config/api";
-import { baseCode, buildUnlockIndex, buildVariantIndex, PrereqMap } from "./prereqs";
+import { baseCode, buildUnlockIndex, buildVariantIndex, normalizeCredits, PrereqMap } from "./prereqs";
 
 const COMPLETED_KEY = "completedCourses";
 const GRADES_KEY = "completedGrades";
+const CREDITS_KEY = "completedCredits";
 const cache = new Map<string, PrereqMap>();
 const inflight = new Map<string, Promise<PrereqMap>>();
 const STORE_PREFIX = "prereqInfo:";
@@ -12,7 +13,7 @@ const STORE_PREFIX = "prereqInfo:";
 const readStored = (key: string): PrereqMap | null => {
   try {
     const stored = localStorage.getItem(STORE_PREFIX + key);
-    return stored ? (JSON.parse(stored) as PrereqMap) : null;
+    return stored ? normalizeCredits(JSON.parse(stored) as PrereqMap) : null;
   } catch {
     return null;
   }
@@ -26,6 +27,7 @@ export function fetchPrereqs(term: string, year: string): Promise<PrereqMap> {
   const request = axios
     .get<PrereqMap>(API_URLS.GET_PREREQS, { params: { term, year } })
     .then((response) => {
+      normalizeCredits(response.data);
       cache.set(key, response.data);
       try {
         localStorage.setItem(STORE_PREFIX + key, JSON.stringify(response.data));
@@ -85,10 +87,10 @@ const readCompleted = (): Set<string> => {
   }
 };
 
-const readGrades = (): Record<string, string> => {
+const readMap = <T,>(key: string): Record<string, T> => {
   try {
-    const stored = localStorage.getItem(GRADES_KEY);
-    return stored ? (JSON.parse(stored) as Record<string, string>) : {};
+    const stored = localStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as Record<string, T>) : {};
   } catch {
     return {};
   }
@@ -97,15 +99,18 @@ const readGrades = (): Record<string, string> => {
 /** Courses the student has already finished (and their grades), kept in localStorage. */
 export function useCompletedCourses(variants: Map<string, string[]>) {
   const [completed, setCompleted] = useState<Set<string>>(readCompleted);
-  const [grades, setGrades] = useState<Record<string, string>>(readGrades);
+  const [grades, setGrades] = useState<Record<string, string>>(() => readMap<string>(GRADES_KEY));
+  // credits a transcript gave, for transfer and variable-credit classes the catalog can't price
+  const [credits, setCredits] = useState<Record<string, number>>(() => readMap<number>(CREDITS_KEY));
 
   useEffect(() => {
     try {
       localStorage.setItem(GRADES_KEY, JSON.stringify(grades));
+      localStorage.setItem(CREDITS_KEY, JSON.stringify(credits));
     } catch {
       // storage unavailable
     }
-  }, [grades]);
+  }, [grades, credits]);
 
   useEffect(() => {
     try {
@@ -128,9 +133,9 @@ export function useCompletedCourses(variants: Map<string, string[]>) {
     [variants]
   );
 
-  /** Marks many courses at once, e.g. from a pasted transcript, optionally with grades. */
+  /** Marks many courses at once, e.g. from a pasted transcript, optionally with grades and credits. */
   const markCompleted = useCallback(
-    (entries: { code: string; grade?: string }[]) => {
+    (entries: { code: string; grade?: string; credits?: number }[]) => {
       setCompleted((prev) => {
         const next = new Set(prev);
         entries.forEach(({ code }) =>
@@ -146,6 +151,13 @@ export function useCompletedCourses(variants: Map<string, string[]>) {
         });
         return next;
       });
+      setCredits((prev) => {
+        const next = { ...prev };
+        entries.forEach(({ code, credits: value }) => {
+          if (value != null) next[code] = value;
+        });
+        return next;
+      });
     },
     [variants]
   );
@@ -153,7 +165,8 @@ export function useCompletedCourses(variants: Map<string, string[]>) {
   const clearCompleted = useCallback(() => {
     setCompleted(new Set());
     setGrades({});
+    setCredits({});
   }, []);
 
-  return { completed, grades, setCourseCompleted, markCompleted, clearCompleted };
+  return { completed, grades, credits, setCourseCompleted, markCompleted, clearCompleted };
 }

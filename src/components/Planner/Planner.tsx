@@ -47,12 +47,14 @@ import { exportPlanToPdf } from "./plannerPdf";
 import "./PlannerStyles.css";
 
 const NO_VARIANTS = new Map<string, string[]>();
+const MAJOR_KEY = "plannerMajor";
 
 const Planner: React.FC = () => {
   const { info, loading, error } = usePlannerCatalog();
   // Marking COP3502C completed also marks COP3502, so the prerequisite graph agrees
   const variants = useMemo(() => (info ? buildVariantIndex(info) : NO_VARIANTS), [info]);
-  const { completed, grades, setCourseCompleted, markCompleted } = useCompletedCourses(variants);
+  const { completed, grades, credits: transcriptCredits, setCourseCompleted, markCompleted } =
+    useCompletedCourses(variants);
   const {
     semesters,
     placedCodes,
@@ -93,7 +95,7 @@ const Planner: React.FC = () => {
     return all;
   }, [semesters, info, completed, grades]);
   // finished courses that aren't on the plan still count toward the degree
-  const offPlan = info ? completedCreditsOffPlan(semesters, info, completed) : 0;
+  const offPlan = info ? completedCreditsOffPlan(semesters, info, completed, transcriptCredits) : 0;
   const credits = info ? totalCredits(semesters, info) + offPlan : 0;
   const doneCredits = info ? completedCredits(semesters, info, completed) + offPlan : 0;
   const lightSemesters = info ? underloadedSemesters(semesters, info).length : 0;
@@ -103,13 +105,28 @@ const Planner: React.FC = () => {
         .reduce((sum, s) => sum + s.items.reduce((t, item) => t + itemCredits(item, info), 0), 0)
     : 0;
 
-  const loadMajor = (major: string) => {
-    if (!major || !info) return;
+  // remembered so a transcript rebuild knows which major's electives apply
+  const [major, setMajor] = useState(() => {
+    try {
+      return localStorage.getItem(MAJOR_KEY) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  });
+
+  const loadMajor = (name: string) => {
+    if (!name || !info) return;
     const hasWork = semesters.some((semester) => semester.items.length > 0);
-    if (hasWork && !window.confirm(`Replace your current plan with the ${major} model plan?`)) {
+    if (hasWork && !window.confirm(`Replace your current plan with the ${name} model plan?`)) {
       return;
     }
-    replaceItems(buildMajorPlan(major, info, semesters));
+    replaceItems(buildMajorPlan(name, info, semesters));
+    setMajor(name);
+    try {
+      localStorage.setItem(MAJOR_KEY, name);
+    } catch {
+      // storage unavailable
+    }
   };
 
   const lastTerm = lastRegularWithCourses(semesters);
@@ -150,7 +167,9 @@ const Planner: React.FC = () => {
   const applyTranscript = (rows: TranscriptRow[], attrs: AttrMap) => {
     const kept = rows.filter((row) => row.status !== "ignore");
     markCompleted(
-      kept.filter((row) => row.status === "completed").map((row) => ({ code: row.code, grade: row.grade }))
+      kept
+        .filter((row) => row.status === "completed")
+        .map((row) => ({ code: row.code, grade: row.grade, credits: row.credits }))
     );
     if (!info) return;
     const result = planFromTranscript(
@@ -166,7 +185,8 @@ const Planner: React.FC = () => {
       info,
       attrs,
       now,
-      completed
+      completed,
+      major
     );
     setUndo({ before: semesters, result });
     setShowDetails(false);
@@ -373,7 +393,7 @@ const Planner: React.FC = () => {
               )}
               {undo.result.examCredit.length > 0 && (
                 <div>
-                  <span className="csu-label">AP / transfer credit</span>
+                  <span className="csu-label">Prior credit (AP, transfer, dual enrollment)</span>
                   <p>{undo.result.examCredit.map(formatCode).join(", ")}</p>
                 </div>
               )}

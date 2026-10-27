@@ -23,6 +23,17 @@ export interface PrereqInfo {
 
 export type PrereqMap = Record<string, PrereqInfo>;
 
+/** The API sends "VAR" for variable-credit courses and ".5" as text; keep credits numeric. */
+export function normalizeCredits(map: PrereqMap): PrereqMap {
+  Object.values(map).forEach((course) => {
+    const raw = course.credits as unknown;
+    if (typeof raw === "number" || raw == null) return;
+    const value = Number(raw);
+    course.credits = Number.isFinite(value) ? value : null;
+  });
+  return map;
+}
+
 export type CourseStatus = "completed" | "eligible" | "almost" | "locked" | "unknown";
 
 export interface CourseEvaluation {
@@ -37,7 +48,8 @@ export const baseCode = (code: string) => code.replace(/[A-Z]+$/, "");
 /** Graph node ids look like "COP\n3502". */
 export const nodeIdToCode = (id: string) => id.replace(/\s+/g, "");
 
-export const formatCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
+// "MASU000-2" is a second transfer placeholder with the same code; show it as "MAS U000"
+export const formatCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3).replace(/-\d+$/, "")}`;
 
 export function buildVariantIndex(info: PrereqMap): Map<string, string[]> {
   const index = new Map<string, Set<string>>();
