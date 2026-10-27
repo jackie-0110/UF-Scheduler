@@ -10,6 +10,11 @@ export interface PlanItem {
   credits?: number;
   /** Requirement cards only: the student has already satisfied it */
   done?: boolean;
+  /** Placed from a transcript: finished, or being taken this term */
+  taken?: "done" | "in-progress";
+  grade?: string;
+  /** Requirement cards this taken course filled, e.g. "Quest 1 (Gen Ed Humanities)" */
+  counts?: string[];
 }
 
 export const GRADE_ORDER = ["E", "D-", "D", "D+", "C-", "C", "C+", "B-", "B", "B+", "A-", "A"];
