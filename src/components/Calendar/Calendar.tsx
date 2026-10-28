@@ -375,7 +375,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const buildCombinations = () =>
     makeCombinations([
       ...allSelectedSections,
-      ...customAppointments.map((item) => [item]),
+      ...customAppointments.filter((item) => !item.hidden).map((item) => [item]),
     ]);
 
   const [allCombinations, setAllCombinations] =
@@ -646,7 +646,7 @@ const Calendar: React.FC<CalendarProps> = ({
     filters.daysOff.length > 0;
   const hasCourses =
     selectedCourses.some((course) => !course.excludedFromSchedule) ||
-    customAppointments.length > 0;
+    customAppointments.some((item) => !item.hidden);
   const hourOptions = (hours: number[]) =>
     hours.map((hour) => (
       <option key={hour} value={hour * 60}>
