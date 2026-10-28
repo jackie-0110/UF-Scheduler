@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Course, Section } from "../CourseUI/CourseTypes";
 import ColorHash from "color-hash";
 import { IoClose } from "react-icons/io5";
 import { PiEyeBold, PiEyeSlashBold } from "react-icons/pi";
+import CourseDetailDialog from "./CourseDetailDialog";
 import "./LikedSelectedStyles.css";
 
 interface LikedSelectedCoursesProps {
@@ -48,6 +49,11 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
   setDebouncedSearchTerm,
   setSearchTrigger,
 }) => {
+  const [detailKey, setDetailKey] = useState<string | null>(null);
+  const detailCourse = selectedCourses.find(
+    (c) => `${c.code}|${c.name}` === detailKey
+  );
+
   const getCourseBackgroundColor = (course: Course) => {
     const hashedColor = getHashedColor(course);
     course.sections.map((section: Section) => {
@@ -58,11 +64,9 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
     };
   };
 
-  const handleBadgeClick = (course: Course) => {
-    // Populate search box with course code and trigger search
-    const searchQuery = course.code;
-    setSearchTerm(searchQuery);
-    setDebouncedSearchTerm(searchQuery);
+  const searchFor = (query: string) => {
+    setSearchTerm(query);
+    setDebouncedSearchTerm(query);
     setSearchTrigger((prev) => !prev); // Toggle to trigger the search
   };
 
@@ -86,6 +90,14 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
           ? { ...c, excludedFromSchedule: !c.excludedFromSchedule }
           : c
       )
+    );
+    setLoaded(true);
+  };
+
+  const toggleAppointmentHidden = (e: React.MouseEvent, appointment: any) => {
+    e.stopPropagation();
+    setCustomAppointments((prev) =>
+      prev.map((a) => (a === appointment ? { ...a, hidden: !a.hidden } : a))
     );
     setLoaded(true);
   };
@@ -142,7 +154,8 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
             <button
               type="button"
               className="course-chip-label"
-              onClick={() => handleBadgeClick(course)}
+              onClick={() => setDetailKey(`${course.code}|${course.name}`)}
+              aria-haspopup="dialog"
             >
               <strong>
                 {code}
@@ -198,16 +211,27 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
       {customAppointments.map((appointment: any, index: number) => (
         <div
           key={`event-${index}`}
-          className="course-chip fade-in"
-          style={{
-            backgroundColor: appointment.color,
-            color: getContrastYIQ(appointment.color),
-          }}
-          title="Recurring event"
+          className={`course-chip fade-in${
+            appointment.hidden ? " hidden-course" : ""
+          }`}
+          style={
+            appointment.hidden
+              ? { backgroundColor: "transparent", borderColor: appointment.color }
+              : {
+                  backgroundColor: appointment.color,
+                  color: getContrastYIQ(appointment.color),
+                }
+          }
+          title={
+            appointment.hidden
+              ? "Recurring event · hidden from schedules"
+              : "Recurring event"
+          }
         >
           <span className="course-chip-label">
             <strong>{appointment.courseName}</strong>
             <span>
+              {appointment.hidden ? "hidden · " : ""}
               {appointment.meetTimes
                 .map((meetTime: any) => meetTime.meetDays.join(""))
                 .join(", ")}{" "}
@@ -218,6 +242,28 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
           <button
             type="button"
             className="course-chip-remove"
+            onClick={(e) => toggleAppointmentHidden(e, appointment)}
+            aria-pressed={!!appointment.hidden}
+            aria-label={
+              appointment.hidden
+                ? `Include ${appointment.courseName} in schedules`
+                : `Hide ${appointment.courseName} from schedules`
+            }
+            title={
+              appointment.hidden
+                ? "Include in schedules"
+                : "Hide from schedules without removing it"
+            }
+          >
+            {appointment.hidden ? (
+              <PiEyeSlashBold size={14} />
+            ) : (
+              <PiEyeBold size={14} />
+            )}
+          </button>
+          <button
+            type="button"
+            className="course-chip-remove"
             onClick={(e) => handleRemoveAppointment(e, appointment)}
             aria-label={`Remove ${appointment.courseName}`}
           >
@@ -225,6 +271,19 @@ const LikedSelectedCourses: React.FC<LikedSelectedCoursesProps> = ({
           </button>
         </div>
       ))}
+      {detailCourse && (
+        <CourseDetailDialog
+          course={detailCourse}
+          selectedCourses={selectedCourses}
+          setSelectedCourses={setSelectedCourses}
+          setLoaded={setLoaded}
+          onSearch={(query) => {
+            searchFor(query);
+            setDetailKey(null);
+          }}
+          onClose={() => setDetailKey(null)}
+        />
+      )}
     </div>
   );
 };
