@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { IoClose, IoSchoolOutline, IoWarningOutline } from "react-icons/io5";
 import { formatCode, PrereqInfo } from "../Cytoscape/prereqs";
 import { PlanViolation } from "./plannerLogic";
+
+// Set by the planner so a tap (not a drag) on a card opens the move sheet
+export const PickContext = createContext<((dragId: string) => void) | null>(null);
 
 const CS_PREFIXES = ["COP", "CIS", "CDA", "COT", "CEN", "CAP", "CNT", "CGS"];
 const MATH_PREFIXES = ["MAC", "MAP", "MAS", "STA", "MTG"];
@@ -145,10 +148,15 @@ const CourseCard: React.FC<CourseCardProps> = (props) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: props.dragId,
   });
+  const pick = useContext(PickContext);
   return (
     <div
       ref={setNodeRef}
       className="planner-draggable"
+      onClick={(event) => {
+        // the card's own buttons do their own thing
+        if (pick && !(event.target as HTMLElement).closest("button")) pick(props.dragId);
+      }}
       style={{ transform: CSS.Translate.toString(transform), opacity: isDragging ? 0.35 : 1 }}
       {...listeners}
       {...attributes}

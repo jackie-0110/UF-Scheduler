@@ -21,8 +21,9 @@ import ClipLoader from "react-spinners/ClipLoader";
 import { useCompletedCourses } from "../Cytoscape/usePrereqData";
 import { buildVariantIndex, formatCode } from "../Cytoscape/prereqs";
 import CatalogSidebar from "./CatalogSidebar";
-import { CourseCardBody } from "./CourseCard";
+import { CourseCardBody, PickContext } from "./CourseCard";
 import SemesterColumn from "./SemesterColumn";
+import MoveSheet from "./MoveSheet";
 import ArrangeDialog from "./ArrangeDialog";
 import ProgressDialog from "./ProgressDialog";
 import { useNowTerm, usePlan, usePlannerCatalog } from "./usePlanner";
@@ -193,14 +194,16 @@ const Planner: React.FC = () => {
     replaceSemesters(result.semesters);
   };
 
+  const [picked, setPicked] = useState<string | null>(null);
   const handleDragStart = (event: DragStartEvent) => setActiveDrag(String(event.active.id));
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDrag(null);
-    const active = String(event.active.id);
-    const over = event.over ? String(event.over.id) : null;
-    if (!over) return;
+    if (event.over) dropOn(String(event.active.id), String(event.over.id));
+  };
 
+  // `active` is a card's drag id, `over` a semester ("sem:<id>") or "catalog"
+  const dropOn = (active: string, over: string) => {
     if (over.startsWith("sem:")) {
       const semesterId = over.slice(4);
       if (active.startsWith("catalog:")) {
@@ -226,6 +229,23 @@ const Planner: React.FC = () => {
     }
     return null;
   };
+
+  const pickedCard = (() => {
+    if (!picked || !info) return null;
+    if (picked.startsWith("catalog:")) {
+      const code = picked.slice(8);
+      return { code, title: info[code]?.name ?? code, requirement: false, fromId: null };
+    }
+    const found = findItem(picked.slice(5));
+    if (!found) return null;
+    const { item, semesterId } = found;
+    return {
+      code: item.code,
+      title: info[item.code]?.name ?? item.label ?? item.code,
+      requirement: isRequirement(item),
+      fromId: semesterId,
+    };
+  })();
 
   const isPast = (semesterId: string) => {
     const semester = semesters.find((s) => s.id === semesterId);
@@ -280,7 +300,7 @@ const Planner: React.FC = () => {
       <div className="planner-toolbar">
         <div className="planner-title">
           <strong>Degree planner</strong>
-          <span>Drag courses into semesters</span>
+          <span>Drag or tap a course to place it</span>
         </div>
         <div className="planner-terms" aria-label="Your timeline">
           <label>
@@ -442,6 +462,7 @@ const Planner: React.FC = () => {
         </div>
       )}
 
+      <PickContext.Provider value={setPicked}>
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="planner-body">
           <CatalogSidebar
@@ -487,6 +508,30 @@ const Planner: React.FC = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+      </PickContext.Provider>
+
+      {pickedCard && (
+        <MoveSheet
+          code={pickedCard.code}
+          title={pickedCard.title}
+          requirement={pickedCard.requirement}
+          fromId={pickedCard.fromId}
+          semesters={semesters.filter((s) => showSummers || !s.summer || s.items.length > 0)}
+          statusOf={(semester) => termStatus(semester.term, now)}
+          info={info}
+          completed={completed.has(pickedCard.code)}
+          onMove={(semesterId) => {
+            dropOn(picked!, `sem:${semesterId}`);
+            setPicked(null);
+          }}
+          onRemove={() => {
+            dropOn(picked!, "catalog");
+            setPicked(null);
+          }}
+          onToggleCompleted={() => toggleCompleted(pickedCard.code)}
+          onClose={() => setPicked(null)}
+        />
+      )}
 
       {progressOpen && (
         <ProgressDialog
