@@ -659,6 +659,29 @@ const Calendar: React.FC<CalendarProps> = ({
       )
     : [];
 
+  const sortControl = (
+    <label className="schedule-filter">
+      Sort
+      <select
+        value={sortValue}
+        onChange={(e) => handleSortChange(e.target.value)}
+        disabled={!canSort}
+        title={
+          canSort
+            ? undefined
+            : "Too many combinations to sort. Pick a section for some courses first."
+        }
+      >
+        <option value="">Default</option>
+        {SORT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   return (
     <div className="calendar-container-2">
       {isLoadingSort && <div className="spinner"></div>}
@@ -730,7 +753,14 @@ const Calendar: React.FC<CalendarProps> = ({
             >
               <IoOptionsOutline size={16} aria-hidden />
               Filters
-              {filtersActive && <span className="filters-dot" aria-label="on" />}
+              {(filtersActive || sortValue) && <span className="filters-dot" aria-label="on" />}
+            </button>
+            <button
+              type="button"
+              className="schedule-add-event compact"
+              onClick={() => setIsAppointmentFormVisible((prev) => !prev)}
+            >
+              + Event
             </button>
             <div className="layout-toggle" role="group" aria-label="Layout">
               {(["day", "week"] as const).map((value) => (
@@ -747,6 +777,7 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
           </div>
           <div className={`schedule-filters${showFilters ? " open" : ""}`}>
+            <div className="schedule-sort-phone">{sortControl}</div>
             <label className="schedule-filter">
               Start after
               <select
@@ -820,26 +851,7 @@ const Calendar: React.FC<CalendarProps> = ({
             )}
           </div>
           <div className="schedule-toolbar-end">
-            <label className="schedule-filter">
-              Sort
-              <select
-                value={sortValue}
-                onChange={(e) => handleSortChange(e.target.value)}
-                disabled={!canSort}
-                title={
-                  canSort
-                    ? undefined
-                    : "Too many combinations to sort. Pick a section for some courses first."
-                }
-              >
-                <option value="">Default</option>
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+{sortControl}
             <button
               type="button"
               className="schedule-add-event"

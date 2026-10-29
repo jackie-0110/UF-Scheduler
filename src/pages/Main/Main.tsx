@@ -430,10 +430,13 @@ const Main = () => {
         ))}
       </nav>
       <Footer />
-      <div className="floating-text">
-        <div className="green-circle"></div>
-        {activeUsers} online
-      </div>
+      {/* "0 online" is just noise, so only show it when others are here */}
+      {activeUsers > 1 && (
+        <div className="floating-text">
+          <div className="green-circle"></div>
+          {activeUsers} online
+        </div>
+      )}
     </div>
   );
 };

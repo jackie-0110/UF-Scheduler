@@ -733,6 +733,11 @@
   display: none;
 }
 
+.schedule-sort-phone,
+.schedule-add-event.compact {
+  display: none;
+}
+
 .schedule-filters {
   display: contents;
 }
@@ -805,17 +810,26 @@
     border-radius: 10px;
     background: var(--csu-subtle);
   }
+  /* sort moves into the filters panel and "+ Event" into the top row */
   .schedule-toolbar-end {
+    display: none;
+  }
+  .schedule-sort-phone {
+    display: flex;
     width: 100%;
-    margin-left: 0;
-    gap: 8px;
   }
-  .schedule-toolbar-end .schedule-filter {
-    flex: 1;
-  }
-  .schedule-toolbar-end select {
+  .schedule-sort-phone .schedule-filter,
+  .schedule-sort-phone select {
     flex: 1;
     min-width: 0;
+  }
+  .schedule-mobile-row .layout-toggle {
+    margin-left: auto;
+  }
+  .schedule-add-event.compact {
+    display: inline-flex;
+    order: 2;
+    padding: 6px 12px;
   }
   /* ICS is a desktop thing; Register matters more here */
   .ics-link {

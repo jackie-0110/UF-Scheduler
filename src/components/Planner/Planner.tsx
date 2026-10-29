@@ -13,6 +13,7 @@ import {
   IoCheckmarkCircleOutline,
   IoClose,
   IoDownloadOutline,
+  IoOptionsOutline,
   IoSparklesOutline,
   IoTrashOutline,
   IoWarningOutline,
@@ -195,6 +196,7 @@ const Planner: React.FC = () => {
   };
 
   const [picked, setPicked] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const handleDragStart = (event: DragStartEvent) => setActiveDrag(String(event.active.id));
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -302,29 +304,6 @@ const Planner: React.FC = () => {
           <strong>Degree planner</strong>
           <span>Drag or tap a course to place it</span>
         </div>
-        <div className="planner-terms" aria-label="Your timeline">
-          <label>
-            <span>Started</span>
-            <select value={semesters[0]?.term} onChange={(e) => setStart(e.target.value)}>
-              {startChoices.map((term) => (
-                <option key={term} value={term}>
-                  {term}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label title={isAuto ? "From today's date" : "You picked this; choose today's term to follow the date again"}>
-            <span>Now</span>
-            <select value={now} onChange={(e) => setNow(e.target.value)}>
-              {termChoices(termOf(new Date()), 6, 6, true).map((term) => (
-                <option key={term} value={term}>
-                  {term}
-                  {term === termOf(new Date()) ? " (today)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
         <span className="planner-chip">
           Credits <b>{credits}</b> / {DEGREE_CREDITS}
         </span>
@@ -361,38 +340,71 @@ const Planner: React.FC = () => {
           </span>
         )}
         <div className="planner-spacer" />
-        <select
-          className="planner-major"
-          value=""
-          onChange={(e) => loadMajor(e.target.value)}
-          aria-label="Start from a major's model plan"
-        >
-          <option value="">Start from a major…</option>
-          {majorNames.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
         <button className="planner-ghost" onClick={() => setProgressOpen(true)}>
           <IoCheckmarkCircleOutline size={15} /> My progress
         </button>
         <button
-          className={`planner-ghost${showSummers ? " on" : ""}`}
-          onClick={() => setShowSummers((value) => !value)}
-          aria-pressed={showSummers}
+          className={`planner-ghost planner-more-toggle${showMore ? " on" : ""}`}
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
         >
-          Summers
+          <IoOptionsOutline size={15} /> Options
         </button>
-        <button className="planner-ghost" onClick={() => setArrangeOpen(true)}>
-          <IoSparklesOutline size={15} /> Arrange
-        </button>
-        <button className="planner-ghost" onClick={clearPlan} disabled={placedCodes.size === 0}>
-          <IoTrashOutline size={15} /> Clear
-        </button>
-        <button className="planner-primary" onClick={handleExport} disabled={exporting}>
-          <IoDownloadOutline size={15} /> {exporting ? "Exporting…" : "Export PDF"}
-        </button>
+        {/* phones fold these away; on desktop they sit in the toolbar */}
+        <div className={`planner-more${showMore ? " open" : ""}`}>
+          <div className="planner-terms" aria-label="Your timeline">
+            <label>
+              <span>Started</span>
+              <select value={semesters[0]?.term} onChange={(e) => setStart(e.target.value)}>
+                {startChoices.map((term) => (
+                  <option key={term} value={term}>
+                    {term}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label title={isAuto ? "From today's date" : "You picked this; choose today's term to follow the date again"}>
+              <span>Now</span>
+              <select value={now} onChange={(e) => setNow(e.target.value)}>
+                {termChoices(termOf(new Date()), 6, 6, true).map((term) => (
+                  <option key={term} value={term}>
+                    {term}
+                    {term === termOf(new Date()) ? " (today)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <select
+            className="planner-major"
+            value=""
+            onChange={(e) => loadMajor(e.target.value)}
+            aria-label="Start from a major's model plan"
+          >
+            <option value="">Start from a major…</option>
+            {majorNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`planner-ghost${showSummers ? " on" : ""}`}
+            onClick={() => setShowSummers((value) => !value)}
+            aria-pressed={showSummers}
+          >
+            Summers
+          </button>
+          <button className="planner-ghost" onClick={() => setArrangeOpen(true)}>
+            <IoSparklesOutline size={15} /> Arrange
+          </button>
+          <button className="planner-ghost" onClick={clearPlan} disabled={placedCodes.size === 0}>
+            <IoTrashOutline size={15} /> Clear
+          </button>
+          <button className="planner-primary" onClick={handleExport} disabled={exporting}>
+            <IoDownloadOutline size={15} /> {exporting ? "Exporting…" : "Export PDF"}
+          </button>
+        </div>
       </div>
 
       {undo && (

@@ -1059,3 +1059,37 @@
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }
+
+/* Options toggle only matters on phones; desktop shows everything inline */
+.planner-more {
+  display: contents;
+}
+
+.planner-more-toggle {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .planner-title span {
+    display: none;
+  }
+
+  .planner-more-toggle {
+    display: inline-flex;
+  }
+
+  .planner-more {
+    display: none;
+  }
+
+  .planner-more.open {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--csu-subtle);
+  }
+}

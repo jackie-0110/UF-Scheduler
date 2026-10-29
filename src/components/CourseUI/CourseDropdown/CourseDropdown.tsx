@@ -178,7 +178,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                     {excluded ? (
                       <span className="seat-pill unknown">Excluded</span>
                     ) : (
-                      <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
+                      seats.tone !== "unknown" && <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
                     )}
                     {(() => {
                       const fit = fitOf(section);
@@ -200,7 +200,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                       }
                     >
                       {selected ? <BiSolidLockAlt /> : <BiSolidLockOpen />}
-                      {selected ? "Using this section" : "Use only this section"}
+                      {selected ? "Using this one" : "Use this one"}
                     </button>
                   )}
                   <button
@@ -242,7 +242,7 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                 ) : (
                   <p className="section-online">No weekly meeting time (online or TBA)</p>
                 )}
-                <InstructorRatings instructors={section.instructors} />
+                <InstructorRatings instructors={section.instructors} bare />
               </li>
             );
           })}

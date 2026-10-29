@@ -468,12 +468,12 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                           </section>
                           <section className="result-prereqs">
                             <span className="csu-label">Prereqs</span>
+                            <PrereqStatus code={firstCourse.code} term={term} year={year} />
                             <PrerequisiteList
                               prerequisites={firstCourse.prerequisites}
                               onCourseCode={searchFor}
                             />
                           </section>
-                          <PrereqStatus code={firstCourse.code} term={term} year={year} />
                         </div>
                         <div>
                           <div className="w-[100%] opacity-100 visible transition-opacity my-1">

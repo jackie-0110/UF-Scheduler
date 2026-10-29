@@ -336,5 +336,9 @@
     padding: 8px;
     right: 12px;
     bottom: calc(12px + var(--bottom-bar-h) + env(safe-area-inset-bottom));
+    /* quieter on small screens, where it sits over content */
+    background-color: var(--csu-surface);
+    color: var(--csu-orange);
+    border: 1px solid var(--csu-line);
   }
 }

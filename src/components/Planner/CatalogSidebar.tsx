@@ -73,7 +73,7 @@ const CatalogSidebar: React.FC<CatalogSidebarProps> = ({
       <div className="planner-sidebar-list">
         {!searching && (
           <p className="planner-hint">
-            Search or pick a department, then drag or tap a course to place it. Drop a planned course
+            Search or pick a department. Drop a planned course
             here to take it back out.
           </p>
         )}

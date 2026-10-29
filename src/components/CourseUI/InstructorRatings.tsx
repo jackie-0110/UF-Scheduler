@@ -8,16 +8,20 @@ const ratingTone = (rating: number) =>
 const difficultyTone = (difficulty: number) =>
   difficulty <= 2 ? "good" : difficulty < 4 ? "ok" : "bad";
 
-const InstructorRatings: React.FC<{ instructors?: Instructor[] }> = ({
+// `bare` drops the "Instructor" heading where the context makes it obvious
+const InstructorRatings: React.FC<{ instructors?: Instructor[]; bare?: boolean }> = ({
   instructors,
+  bare,
 }) => {
   const named = (instructors ?? []).filter((i) => i?.name?.trim());
   if (!named.length) return null;
   return (
-    <div className="instructor-ratings">
-      <span className="csu-label">
-        {named.length > 1 ? "Instructors" : "Instructor"}
-      </span>
+    <div className={`instructor-ratings${bare ? " bare" : ""}`}>
+      {!bare && (
+        <span className="csu-label">
+          {named.length > 1 ? "Instructors" : "Instructor"}
+        </span>
+      )}
       <ul>
         {named.map((instructor) => (
           <li key={`${instructor.name}-${instructor.professorID}`}>
