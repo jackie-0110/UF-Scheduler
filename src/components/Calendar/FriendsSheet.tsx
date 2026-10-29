@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { IoCheckmark, IoChevronBack, IoClose, IoLinkOutline, IoShareOutline, IoTrashOutline } from "react-icons/io5";
+import { IoCheckmark, IoChevronBack, IoClose, IoCopyOutline, IoLinkOutline, IoQrCodeOutline, IoShareOutline, IoTrashOutline } from "react-icons/io5";
+import { QRCodeSVG } from "qrcode.react";
 import { Section } from "../CourseUI/CourseTypes";
 import {
   Block,
@@ -107,6 +108,75 @@ const FriendWeek: React.FC<{
   );
 };
 
+type CopyResult = { copied: number; missing: string[] };
+
+// "Use Alex's schedule": their courses, each locked to their section
+const CopyFriend: React.FC<{
+  friend: SharedSchedule;
+  term: string;
+  year: string;
+  myCourseCount: number;
+  onCopy: (friend: SharedSchedule) => Promise<CopyResult>;
+}> = ({ friend, term, year, myCourseCount, onCopy }) => {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<CopyResult | null>(null);
+  const otherTerm = friend.term !== term || friend.year !== year;
+  const count = friend.classes.filter((c) => c.code).length;
+
+  const run = async () => {
+    setBusy(true);
+    setConfirming(false);
+    try {
+      setResult(await onCopy(friend));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!count) return null;
+  if (result) {
+    return (
+      <p className={`friend-copy-note${result.copied ? " good" : ""}`}>
+        {result.copied
+          ? `Copied ${result.copied} ${result.copied === 1 ? "class" : "classes"} with ${friend.name}'s sections.`
+          : "Couldn't find their classes."}
+        {result.missing.length > 0 && ` Not found: ${result.missing.map(spacedCode).join(", ")}.`}
+      </p>
+    );
+  }
+  if (otherTerm) {
+    return <p className="friend-copy-note">Switch to {termLabel(friend)} to copy their classes.</p>;
+  }
+  if (confirming) {
+    return (
+      <div className="friend-copy confirm">
+        <span>Replace your {myCourseCount} {myCourseCount === 1 ? "course" : "courses"} with {friend.name}'s?</span>
+        <button type="button" className="friend-copy-go" onClick={run}>
+          Replace
+        </button>
+        <button type="button" className="friend-copy-cancel" onClick={() => setConfirming(false)}>
+          Cancel
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="friend-copy">
+      <button
+        type="button"
+        className="friend-copy-go"
+        disabled={busy}
+        onClick={() => (myCourseCount ? setConfirming(true) : run())}
+      >
+        <IoCopyOutline size={16} />
+        {busy ? "Copying…" : `Use ${friend.name}'s schedule`}
+      </button>
+      <span>Adds their {count} classes, locked to their sections.</span>
+    </div>
+  );
+};
+
 const Compare: React.FC<{ friend: SharedSchedule; mine: SharedSchedule | null; wide: boolean }> = ({
   friend,
   mine,
@@ -209,8 +279,21 @@ const FriendsSheet: React.FC<{
   comparing: SharedSchedule | null;
   setComparing: (friend: SharedSchedule | null) => void;
   onRemoveFriend: (friend: SharedSchedule) => void;
+  myCourseCount: number;
+  onCopy: (friend: SharedSchedule) => Promise<CopyResult>;
   onClose: () => void;
-}> = ({ combination, term, year, friends, comparing, setComparing, onRemoveFriend, onClose }) => {
+}> = ({
+  combination,
+  term,
+  year,
+  friends,
+  comparing,
+  setComparing,
+  onRemoveFriend,
+  myCourseCount,
+  onCopy,
+  onClose,
+}) => {
   const [name, setName] = useState(() => {
     try {
       return localStorage.getItem(NAME_KEY) ?? "";
@@ -219,6 +302,7 @@ const FriendsSheet: React.FC<{
     }
   });
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const wide = useWide();
 
   useEffect(() => {
@@ -264,10 +348,30 @@ const FriendsSheet: React.FC<{
         <input value={name} onChange={(e) => saveName(e.target.value)} placeholder="So friends know it's you" maxLength={40} />
       </label>
       {mine ? (
-        <button type="button" className="friend-share" onClick={share}>
-          {copied ? <IoCheckmark size={18} /> : canShare ? <IoShareOutline size={18} /> : <IoLinkOutline size={18} />}
-          {copied ? "Link copied" : canShare ? "Share my schedule" : "Copy my schedule link"}
-        </button>
+        <>
+          <div className="friend-share-row">
+            <button type="button" className="friend-share" onClick={share}>
+              {copied ? <IoCheckmark size={18} /> : canShare ? <IoShareOutline size={18} /> : <IoLinkOutline size={18} />}
+              {copied ? "Link copied" : canShare ? "Share my schedule" : "Copy my schedule link"}
+            </button>
+            <button
+              type="button"
+              className={`friend-qr-toggle${showQr ? " on" : ""}`}
+              onClick={() => setShowQr((v) => !v)}
+              aria-label={showQr ? "Hide QR code" : "Show QR code"}
+              aria-pressed={showQr}
+              title="QR code"
+            >
+              <IoQrCodeOutline size={20} />
+            </button>
+          </div>
+          {showQr && (
+            <div className="friend-qr">
+              <QRCodeSVG value={link} size={232} level="L" marginSize={2} />
+              <span>Have a friend scan this with their phone camera.</span>
+            </div>
+          )}
+        </>
       ) : (
         <p className="friend-empty">Build a schedule first to share it.</p>
       )}
@@ -327,7 +431,10 @@ const FriendsSheet: React.FC<{
             <aside className="friend-body">{sharePanel}</aside>
             <section className="friend-body friend-main">
               {comparing ? (
-                <Compare friend={comparing} mine={mine} wide />
+                <>
+                  <CopyFriend key={comparing.name + comparing.term} friend={comparing} term={term} year={year} myCourseCount={myCourseCount} onCopy={onCopy} />
+                  <Compare friend={comparing} mine={mine} wide />
+                </>
               ) : (
                 <div className="friend-placeholder">
                   <strong>{friends.length ? "Pick a friend to compare" : "No friends yet"}</strong>
@@ -366,7 +473,14 @@ const FriendsSheet: React.FC<{
             <IoClose size={20} />
           </button>
         </div>
-        <div className="friend-body">{comparing ? <Compare friend={comparing} mine={mine} wide={false} /> : sharePanel}</div>
+        <div className="friend-body">{comparing ? (
+            <>
+              <CopyFriend key={comparing.name + comparing.term} friend={comparing} term={term} year={year} myCourseCount={myCourseCount} onCopy={onCopy} />
+              <Compare friend={comparing} mine={mine} wide={false} />
+            </>
+          ) : (
+            sharePanel
+          )}</div>
       </div>
     </div>
   );

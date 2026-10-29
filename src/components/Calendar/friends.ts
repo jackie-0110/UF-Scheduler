@@ -45,10 +45,50 @@ export const toShared = (
   })),
 });
 
+// Compact text form, e.g. "COP3530.11456.T1355-1445@CAR 0100;W1040-1130@MCCA G186".
+// Course names are left out to keep the link (and its QR code) short; the
+// friend's app already knows the names of any classes you share.
+const packTime = (time: string) => time.replace(":", "").padStart(4, "0");
+const unpackTime = (time: string) => `${Number(time.slice(0, 2))}:${time.slice(2)}`;
+
+const packClass = (c: SharedClass) =>
+  [
+    c.code,
+    c.classNumber,
+    c.meets
+      .map(([days, start, end, place]) => `${days}${packTime(start)}-${packTime(end)}${place ? "@" + place : ""}`)
+      .join(";"),
+  ].join(".");
+
+const MEET = /^([A-Z]+)(\d{4})-(\d{4})(?:@(.*))?$/;
+
+// code and class number never contain dots; places might, so split on the first two only
+const splitClass = (text: string): [string, string, string] => {
+  const first = text.indexOf(".");
+  const second = text.indexOf(".", first + 1);
+  return [text.slice(0, first), text.slice(first + 1, second), text.slice(second + 1)];
+};
+
+const unpackClass = (text: string): SharedClass => {
+  const [code, classNumber, meets] = splitClass(text);
+  return {
+    code,
+    name: code ? "" : "Busy",
+    classNumber,
+    meets: meets
+      ? meets.split(";").flatMap((m) => {
+          const match = m.match(MEET);
+          return match ? [[match[1], unpackTime(match[2]), unpackTime(match[3]), match[4] ?? ""] as SharedMeeting] : [];
+        })
+      : [],
+  };
+};
+
 // base64url so the whole schedule fits in a link with no server
 export const encodeSchedule = (schedule: SharedSchedule) => {
+  const json = JSON.stringify([2, schedule.name, schedule.term, schedule.year, schedule.classes.map(packClass)]);
   // percent-encode first so names with accents survive btoa
-  const binary = encodeURIComponent(JSON.stringify(schedule)).replace(/%([0-9A-F]{2})/g, (_, hex) =>
+  const binary = encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, hex) =>
     String.fromCharCode(parseInt(hex, 16))
   );
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -61,10 +101,10 @@ export const decodeSchedule = (text: string): SharedSchedule | null => {
       Array.from(binary, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")
     );
     const data = JSON.parse(json);
-    if (data?.v !== 1 || !Array.isArray(data.classes) || typeof data.name !== "string") {
-      return null;
-    }
-    return data;
+    if (!Array.isArray(data) || data[0] !== 2 || !Array.isArray(data[4])) return null;
+    const [, name, term, year, classes] = data;
+    if (typeof name !== "string" || typeof term !== "string" || typeof year !== "string") return null;
+    return { v: 1, name, term, year, classes: classes.filter((c: unknown) => typeof c === "string").map(unpackClass) };
   } catch {
     return null;
   }
@@ -131,7 +171,7 @@ export const sharedCourses = (mine: SharedClass[], theirs: SharedClass[]): Share
       return [
         {
           code: t.code,
-          name: t.name,
+          name: match.name || t.name,
           sameSection: String(match.classNumber) === String(t.classNumber),
           classNumber: t.classNumber,
         },

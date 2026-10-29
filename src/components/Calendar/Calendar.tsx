@@ -13,6 +13,7 @@ import WalkCheck from "./WalkCheck";
 import DayList from "./DayList";
 import RegistrationCart from "./RegistrationCart";
 import FriendsSheet from "./FriendsSheet";
+import { fetchFriendCourses } from "./copyFriend";
 import { decodeSchedule, loadFriends, saveFriends, SharedSchedule, upsertFriend } from "./friends";
 
 const today = new Date();
@@ -681,6 +682,15 @@ const Calendar: React.FC<CalendarProps> = ({
               return next;
             })
           }
+          myCourseCount={selectedCourses.length}
+          onCopy={async (friend) => {
+            const { courses, missing } = await fetchFriendCourses(friend);
+            if (courses.length) {
+              setSelectedCalendar(null);
+              setSelectedCourses(courses);
+            }
+            return { copied: courses.length, missing };
+          }}
           onClose={() => {
             setShowFriends(false);
             setComparing(null);

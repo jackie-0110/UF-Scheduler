@@ -23,7 +23,10 @@ test("schedule survives a round trip through the link, unicode included", () => 
     name: "Zoë",
     term: "fall",
     year: "26",
-    classes: [cls("COP3530", "11456", ["W", "10:40", "11:30"])],
+    classes: [
+      { code: "COP3530", name: "", classNumber: "11456", meets: [["W", "10:40", "11:30", "MCCA G186"], ["TR", "9:35", "10:25", ""]] as [string, string, string, string][] },
+      { code: "", name: "Busy", classNumber: "", meets: [["F", "16:05", "18:00", ""]] as [string, string, string, string][] },
+    ],
   };
   expect(decodeSchedule(encodeSchedule(schedule))).toEqual(schedule);
   expect(encodeSchedule(schedule)).not.toMatch(/[+/=]/);
