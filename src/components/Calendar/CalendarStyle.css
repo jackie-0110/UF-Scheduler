@@ -1632,3 +1632,27 @@
   background: var(--csu-good-tint);
   color: var(--csu-good);
 }
+
+/* section hovered in the course list, drawn over the week */
+.week-grid-ghost {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  z-index: 2; /* above classes, below the sticky day header */
+  display: flex;
+  flex-direction: column;
+  padding: 4px 7px;
+  border: 2px dashed var(--csu-blue);
+  border-radius: 8px;
+  background: rgba(15, 68, 205, 0.12);
+  color: var(--csu-blue);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  pointer-events: none;
+}
+
+.week-grid-ghost.clash {
+  border-color: var(--csu-bad);
+  background: rgba(185, 28, 28, 0.12);
+  color: var(--csu-bad);
+}

@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Course, Section } from "../CourseTypes";
 import { BiSolidLockOpen, BiSolidLockAlt } from "react-icons/bi";
 import { PiXBold, PiArrowCounterClockwiseBold } from "react-icons/pi";
 import InstructorRatings from "../InstructorRatings";
 import { readPinnedSchedule, sectionFit, SectionFit } from "../lookup";
+import { setPreviewSection } from "../../Calendar/previewStore";
 import "./CourseDropdown.css";
 
 interface CourseDropdownProps {
@@ -33,6 +34,8 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
 }) => {
   const schedule = useMemo(() => (term && year ? readPinnedSchedule(term, year) : []), [term, year]);
   const [onlyFits, setOnlyFits] = useState(false);
+  // a closed course list shouldn't leave its preview on the grid
+  useEffect(() => () => setPreviewSection(null), []);
   const fitOf = (section: Section): SectionFit => sectionFit(section, course.code, schedule);
   const fitCount = course.sections.filter((s) => fitOf(s).kind === "fits").length;
   const judged = course.sections.some((s) => fitOf(s).kind !== "none");
@@ -165,6 +168,8 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
             return (
               <li
                 key={index}
+                onMouseEnter={() => setPreviewSection({ ...section, courseCode: section.courseCode || course.code })}
+                onMouseLeave={() => setPreviewSection(null)}
                 className={`section-card${selected ? " selected" : ""}${excluded ? " excluded" : ""}`}
               >
                 <div className="section-card-head">

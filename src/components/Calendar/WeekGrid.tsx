@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { Instructor } from "../CourseUI/CourseTypes";
 import InstructorRatings from "../CourseUI/InstructorRatings";
+import { GhostBlock } from "./previewStore";
 
 export type GridAppointment = {
   id: string;
@@ -47,8 +48,9 @@ export const contrastText = (hex: string) => {
   return (r * 299 + g * 587 + b * 114) / 1000 >= 150 ? "#000000" : "#ffffff";
 };
 
-const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
+const WeekGrid: React.FC<{ appointments: GridAppointment[]; ghosts?: GhostBlock[] }> = ({
   appointments,
+  ghosts = [],
 }) => {
   const [openId, setOpenId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -100,6 +102,18 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
     }
   }, [firstStart, startHour]);
 
+  // Bring a previewed section into view if it starts above or below what's showing
+  const ghostStart = ghosts.length ? Math.min(...ghosts.map((g) => g.start)) : null;
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (ghostStart === null || !scroller) return;
+    const top = toPx(ghostStart);
+    if (top < scroller.scrollTop || top > scroller.scrollTop + scroller.clientHeight - 60) {
+      scroller.scrollTo({ top: Math.max(0, top - 16), behavior: "smooth" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ghostStart]);
+
   return (
     <div className="week-grid" ref={gridRef}>
       <div className="week-grid-scroll" ref={scrollRef} tabIndex={0}>
@@ -128,6 +142,25 @@ const WeekGrid: React.FC<{ appointments: GridAppointment[] }> = ({
             className="week-grid-day"
             style={{ backgroundSize: `100% ${HOUR_HEIGHT}px` }}
           >
+            {ghosts
+              .filter((ghost) => ghost.day === dayIndex)
+              .map((ghost) => (
+                <div
+                  key={`ghost-${ghost.start}`}
+                  className={`week-grid-ghost${
+                    events.some((e) => e.day === dayIndex && e.start < ghost.end && ghost.start < e.end)
+                      ? " clash"
+                      : ""
+                  }`}
+                  style={{ top: toPx(ghost.start), height: toPx(ghost.end) - toPx(ghost.start) }}
+                  aria-hidden="true"
+                >
+                  <strong>{ghost.title}</strong>
+                  <span>
+                    {formatTime(ghost.start)} – {formatTime(ghost.end)}
+                  </span>
+                </div>
+              ))}
             {events
               .filter((event) => event.day === dayIndex)
               .map((event) => {

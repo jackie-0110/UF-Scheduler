@@ -14,6 +14,7 @@ import DayList from "./DayList";
 import RegistrationCart from "./RegistrationCart";
 import FriendsSheet from "./FriendsSheet";
 import { fetchFriendCourses } from "./copyFriend";
+import { ghostBlocks, usePreviewSection } from "./previewStore";
 import { decodeSchedule, loadFriends, saveFriends, SharedSchedule, upsertFriend } from "./friends";
 
 const today = new Date();
@@ -246,6 +247,7 @@ const Calendar: React.FC<CalendarProps> = ({
   );
   const [showCart, setShowCart] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const previewSection = usePreviewSection();
   const [friends, setFriends] = useState<SharedSchedule[]>(loadFriends);
   const [comparing, setComparing] = useState<SharedSchedule | null>(null);
 
@@ -1003,7 +1005,14 @@ const Calendar: React.FC<CalendarProps> = ({
               {layout === "day" ? (
                 <DayList appointments={current ? current.appointments : []} />
               ) : (
-                <WeekGrid appointments={current ? current.appointments : []} />
+                <WeekGrid
+                  appointments={current ? current.appointments : []}
+                  ghosts={
+                    previewSection
+                      ? ghostBlocks(previewSection, previewSection.courseCode.replace(/([A-Z]+)/, "$1 "))
+                      : []
+                  }
+                />
               )}
               {current && <WalkCheck combination={current.combination} />}
             </>
