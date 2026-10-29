@@ -9,6 +9,7 @@ import WeekGrid from "./WeekGrid";
 import NoMeetingStrip from "./NoMeetingStrip";
 import { findClashPairs } from "./calendarConflictUtils";
 import { rankCombinations, SORT_OPTIONS } from "./scheduleSort";
+import WalkCheck from "./WalkCheck";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -892,6 +893,7 @@ const Calendar: React.FC<CalendarProps> = ({
             <>
               <NoMeetingStrip sections={noMeetingSections} />
               <WeekGrid appointments={current ? current.appointments : []} />
+              {current && <WalkCheck combination={current.combination} />}
             </>
           )}
         </div>
