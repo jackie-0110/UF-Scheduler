@@ -1119,3 +1119,184 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ── Friends: share & compare ── */
+
+.friend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 20px 20px;
+}
+
+.friend-body ul,
+.friend-body li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.friend-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.friend-name input {
+  padding: 10px 12px;
+  border: 1px solid var(--csu-line);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.friend-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 10px;
+  background: var(--csu-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.friend-note,
+.friend-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--csu-muted);
+}
+
+.friend-warn {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--csu-ok-tint);
+  color: var(--csu-ok);
+  font-size: 0.8rem;
+}
+
+.friend-body .csu-label {
+  margin-top: 8px;
+}
+
+.friend-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--csu-line);
+}
+
+.friend-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 0;
+  text-align: left;
+}
+
+.friend-open span {
+  font-size: 0.78rem;
+  color: var(--csu-muted);
+}
+
+.friend-courses li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--csu-line);
+}
+
+.friend-courses .cart-name {
+  grid-column: 1 / -1;
+}
+
+.friend-tag {
+  justify-self: end;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background: var(--csu-subtle);
+  color: var(--csu-muted);
+  font-size: 0.75rem;
+}
+
+.friend-tag.same {
+  background: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.friend-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 0.75rem;
+  color: var(--csu-muted);
+}
+
+.friend-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.friend-legend .me::before { background: var(--csu-blue); }
+.friend-legend .them::before { background: var(--csu-orange); }
+.friend-legend .free::before { background: var(--csu-good-tint); border: 1px solid var(--csu-good); }
+
+.friend-days li {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 6px 0;
+}
+
+.friend-day {
+  grid-row: span 2;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.friend-bars {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+  border-radius: 6px;
+  background: var(--csu-subtle);
+}
+
+.friend-bar {
+  position: relative;
+  height: 8px;
+}
+
+/* free time sits behind both rows */
+.friend-bar.free {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
+
+.friend-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+
+.friend-bar.me span { background: var(--csu-blue); }
+.friend-bar.them span { background: var(--csu-orange); }
+.friend-bar.free span { background: var(--csu-good-tint); border-radius: 6px; }
+
+.friend-free-text {
+  font-size: 0.75rem;
+  color: var(--csu-good);
+}

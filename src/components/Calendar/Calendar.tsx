@@ -12,6 +12,8 @@ import { rankCombinations, SORT_OPTIONS } from "./scheduleSort";
 import WalkCheck from "./WalkCheck";
 import DayList from "./DayList";
 import RegistrationCart from "./RegistrationCart";
+import FriendsSheet from "./FriendsSheet";
+import { decodeSchedule, loadFriends, saveFriends, SharedSchedule, upsertFriend } from "./friends";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -242,6 +244,31 @@ const Calendar: React.FC<CalendarProps> = ({
     window.innerWidth <= 640 ? "day" : "week"
   );
   const [showCart, setShowCart] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [friends, setFriends] = useState<SharedSchedule[]>(loadFriends);
+  const [comparing, setComparing] = useState<SharedSchedule | null>(null);
+
+  // Opening a friend's link (#friend=...) saves them and shows the comparison
+  useEffect(() => {
+    const openFriendLink = () => {
+      const match = window.location.hash.match(/^#friend=(.+)$/);
+      if (!match) return;
+      const friend = decodeSchedule(match[1]);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      if (!friend) return;
+      setFriends((list) => {
+        const next = upsertFriend(list, friend);
+        saveFriends(next);
+        return next;
+      });
+      setComparing(friend);
+      setShowFriends(true);
+    };
+    openFriendLink();
+    // a link opened while the app is already up
+    window.addEventListener("hashchange", openFriendLink);
+    return () => window.removeEventListener("hashchange", openFriendLink);
+  }, []);
   // Which schedule the pager is showing (index into `options` below)
   const [position, setPosition] = useState(0);
   const prevSelectedCoursesRef = useRef<Course[]>();
@@ -639,6 +666,27 @@ const Calendar: React.FC<CalendarProps> = ({
           onClose={() => setShowCart(false)}
         />
       )}
+      {showFriends && (
+        <FriendsSheet
+          combination={current ? current.combination : null}
+          term={term}
+          year={year}
+          friends={friends}
+          comparing={comparing}
+          setComparing={setComparing}
+          onRemoveFriend={(friend) =>
+            setFriends((list) => {
+              const next = list.filter((f) => f !== friend);
+              saveFriends(next);
+              return next;
+            })
+          }
+          onClose={() => {
+            setShowFriends(false);
+            setComparing(null);
+          }}
+        />
+      )}
       <div className="calendar-display">
         {isAppointmentFormVisible && (
           <CustomAppointmentForm
@@ -838,6 +886,9 @@ const Calendar: React.FC<CalendarProps> = ({
                     Register
                   </button>
                 )}
+                <button className="schedule-card-link" onClick={() => setShowFriends(true)}>
+                  Friends
+                </button>
                 <button
                   className={`schedule-card-select${
                     current.pinned ? " selected" : ""
