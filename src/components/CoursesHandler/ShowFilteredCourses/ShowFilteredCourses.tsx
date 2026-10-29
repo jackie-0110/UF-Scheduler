@@ -15,6 +15,7 @@ import {
 import "./ShowFilteredCourses.css";
 import { getCourseTags } from "../../CourseUI/courseTags";
 import PrerequisiteList from "../../CourseUI/PrerequisiteList";
+import PrereqStatus from "../../CourseUI/PrereqStatus";
 import { API_URLS, BACKEND_URLS, getAuthHeaders } from "../../../config/api";
 import { useAuth } from "react-oidc-context";
 
@@ -472,10 +473,13 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
                               onCourseCode={searchFor}
                             />
                           </section>
+                          <PrereqStatus code={firstCourse.code} term={term} year={year} />
                         </div>
                         <div>
                           <div className="w-[100%] opacity-100 visible transition-opacity my-1">
                             <CourseDropdown
+                              term={term}
+                              year={year}
                               course={firstCourse}
                               selectedCourses={selectedCourses}
                               setSelectedCourses={setSelectedCourses}

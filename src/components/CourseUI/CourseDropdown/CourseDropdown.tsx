@@ -1,14 +1,18 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Course, Section } from "../CourseTypes";
 import { BiSolidLockOpen, BiSolidLockAlt } from "react-icons/bi";
 import { PiXBold, PiArrowCounterClockwiseBold } from "react-icons/pi";
 import InstructorRatings from "../InstructorRatings";
+import { readPinnedSchedule, sectionFit, SectionFit } from "../lookup";
 import "./CourseDropdown.css";
 
 interface CourseDropdownProps {
   course: Course;
   selectedCourses: Course[];
   setSelectedCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  // with these, each section says whether it fits the selected schedule
+  term?: string;
+  year?: string;
 }
 
 const convertTo12HourFormat = (time: string): string => {
@@ -24,7 +28,14 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
   course,
   selectedCourses,
   setSelectedCourses,
+  term,
+  year,
 }) => {
+  const schedule = useMemo(() => (term && year ? readPinnedSchedule(term, year) : []), [term, year]);
+  const [onlyFits, setOnlyFits] = useState(false);
+  const fitOf = (section: Section): SectionFit => sectionFit(section, course.code, schedule);
+  const fitCount = course.sections.filter((s) => fitOf(s).kind === "fits").length;
+  const judged = course.sections.some((s) => fitOf(s).kind !== "none");
   const waitListAvailable = (section: Section) => {
     if (section.waitList.total === section.waitList.cap) {
       return section.waitList.total + "/" + section.waitList.cap + " (Full)";
@@ -133,9 +144,18 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
 
   return (
     <div className="section-list">
-      <span className="csu-label">Sections</span>
+      <div className="section-list-head">
+        <span className="csu-label">Sections</span>
+        {judged && (
+          <label className="section-fit-toggle">
+            <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} />
+            Only the {fitCount} that fit my schedule
+          </label>
+        )}
+      </div>
       <ul>
         {course.sections
+          .filter((section) => !onlyFits || fitOf(section).kind === "fits")
           .sort((a, b) => a.waitList.total - b.waitList.total)
           .map((section, index) => {
             const saved = savedSection(section);
@@ -155,6 +175,12 @@ const CourseDropdown: React.FC<CourseDropdownProps> = ({
                     ) : (
                       <span className={`seat-pill ${seats.tone}`}>{seats.text}</span>
                     )}
+                    {(() => {
+                      const fit = fitOf(section);
+                      if (fit.kind === "fits") return <span className="seat-pill open">Fits your schedule</span>;
+                      if (fit.kind === "clash") return <span className="seat-pill clash">Clashes with {fit.with}</span>;
+                      return null;
+                    })()}
                   </div>
                   {!excluded && (
                     <button

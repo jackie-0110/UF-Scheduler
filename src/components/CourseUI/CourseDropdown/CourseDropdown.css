@@ -140,3 +140,30 @@
 .section-card.excluded .section-card-title strong {
   text-decoration: line-through;
 }
+
+.section-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-bottom: 6px;
+}
+
+.section-fit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--csu-muted);
+  cursor: pointer;
+}
+
+.section-fit-toggle input {
+  accent-color: var(--csu-blue);
+}
+
+.seat-pill.clash {
+  background-color: var(--csu-bad-tint);
+  color: var(--csu-bad);
+}

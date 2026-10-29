@@ -255,3 +255,30 @@ button.prereq-code:hover {
     display: block;
   }
 }
+
+.prereq-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.prereq-status.good {
+  background: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.prereq-status.bad {
+  background: var(--csu-bad-tint);
+  color: var(--csu-bad);
+}
+
+.prereq-status.muted {
+  padding: 0;
+  font-weight: 400;
+  color: var(--csu-muted);
+}
