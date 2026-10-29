@@ -16,6 +16,7 @@ import {
   shareLink,
   toShared,
 } from "./friends";
+import { useWide } from "./useWide";
 
 const NAME_KEY = "shareName";
 const spacedCode = (code: string) => code.replace(/([A-Z]+)/g, "$1 ").trim();
@@ -39,19 +40,6 @@ const Bar: React.FC<{ blocks: Block[]; className: string }> = ({ blocks, classNa
       })}
     </div>
   );
-};
-
-const useWide = () => {
-  const query = "(min-width: 900px)";
-  const [wide, setWide] = useState(() => window.matchMedia?.(query).matches ?? false);
-  useEffect(() => {
-    const list = window.matchMedia?.(query);
-    if (!list) return;
-    const onChange = () => setWide(list.matches);
-    list.addEventListener("change", onChange);
-    return () => list.removeEventListener("change", onChange);
-  }, []);
-  return wide;
 };
 
 const hourLabel = (hour: number) => `${hour % 12 || 12}${hour >= 12 ? "pm" : "am"}`;

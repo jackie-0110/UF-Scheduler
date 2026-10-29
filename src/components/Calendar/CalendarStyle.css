@@ -1461,3 +1461,82 @@
 .friend-week-class span {
   opacity: 0.85;
 }
+
+/* desktop registration cart: one table, backups visible */
+.cart-sheet.cart-wide {
+  width: min(1180px, calc(100vw - 64px));
+  max-width: none;
+}
+
+.cart-table {
+  margin: 4px 20px 8px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cart-table th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--csu-line);
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--csu-muted);
+}
+
+.cart-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--csu-line);
+  vertical-align: top;
+}
+
+.cart-order {
+  font-weight: 600;
+  color: var(--csu-muted);
+}
+
+.cart-course {
+  display: flex;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.cart-course .cart-dot {
+  margin-top: 6px;
+}
+
+.cart-course > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-when div {
+  white-space: nowrap;
+}
+
+.cart-table-backups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cart-table-backups li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.cart-table-backups .cart-meta {
+  font-size: 0.78rem;
+}
+
+.cart-more {
+  font-size: 0.75rem;
+  color: var(--csu-muted);
+}
