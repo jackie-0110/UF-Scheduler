@@ -367,8 +367,16 @@
   cursor: grabbing;
 }
 
-.planner-card:hover .planner-card-remove {
+.planner-card:hover .planner-card-remove,
+.planner-card-remove:focus-visible {
   opacity: 1;
+}
+
+/* touch screens can't hover, so keep it visible */
+@media (hover: none) {
+  .planner-card-remove {
+    opacity: 1;
+  }
 }
 
 .planner-card-main {

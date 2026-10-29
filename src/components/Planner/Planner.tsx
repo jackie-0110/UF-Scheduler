@@ -203,10 +203,41 @@ const Planner: React.FC = () => {
 
     if (over.startsWith("sem:")) {
       const semesterId = over.slice(4);
-      if (active.startsWith("catalog:")) addCourse(semesterId, active.slice(8));
-      else if (active.startsWith("item:")) moveItem(active.slice(5), semesterId);
+      if (active.startsWith("catalog:")) {
+        addCourse(semesterId, active.slice(8));
+        if (isPast(semesterId)) setCourseCompleted(active.slice(8), true);
+      } else if (active.startsWith("item:")) {
+        const found = findItem(active.slice(5));
+        moveItem(active.slice(5), semesterId);
+        // a past term holds what was taken, so moving in or out changes that
+        if (found && !isRequirement(found.item) && isPast(semesterId) !== isPast(found.semesterId)) {
+          setCourseCompleted(found.item.code, isPast(semesterId));
+        }
+      }
     } else if (over === "catalog" && active.startsWith("item:")) {
-      removeItem(active.slice(5));
+      removePlanned(active.slice(5));
+    }
+  };
+
+  const findItem = (itemId: string) => {
+    for (const semester of semesters) {
+      const item = semester.items.find((i) => i.id === itemId);
+      if (item) return { item, semesterId: semester.id };
+    }
+    return null;
+  };
+
+  const isPast = (semesterId: string) => {
+    const semester = semesters.find((s) => s.id === semesterId);
+    return !!semester && termStatus(semester.term, now) === "past";
+  };
+
+  // Taking a course out of a past term means it wasn't taken then
+  const removePlanned = (itemId: string) => {
+    const found = findItem(itemId);
+    removeItem(itemId);
+    if (found && !isRequirement(found.item) && isPast(found.semesterId)) {
+      setCourseCompleted(found.item.code, false);
     }
   };
 
@@ -441,7 +472,7 @@ const Planner: React.FC = () => {
                       info={info}
                       violations={violations}
                       completed={completed}
-                      onRemove={removeItem}
+                      onRemove={removePlanned}
                       onToggleCompleted={toggleCompleted}
                     />
                   ))}

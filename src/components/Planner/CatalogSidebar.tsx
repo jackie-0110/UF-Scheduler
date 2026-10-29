@@ -103,7 +103,7 @@ const CatalogSidebar: React.FC<CatalogSidebarProps> = ({
                 code={course.code}
                 course={course}
                 completed
-                onToggleCompleted={() => onToggleCompleted(course.code)}
+                onRemove={() => onToggleCompleted(course.code)}
               />
             ))}
           </>
