@@ -8,6 +8,7 @@ import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
 import WeekGrid from "./WeekGrid";
 import NoMeetingStrip from "./NoMeetingStrip";
 import { findClashPairs } from "./calendarConflictUtils";
+import { rankCombinations, SORT_OPTIONS } from "./scheduleSort";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -287,13 +288,6 @@ const Calendar: React.FC<CalendarProps> = ({
   
 
 
-  const sortOptions = [
-    { value: "earliestStart", label: "Earliest Start" },
-    { value: "latestStart", label: "Latest Start" },
-    { value: "earliestEnd", label: "Earliest End" },
-    { value: "latestEnd", label: "Latest End" },
-    { value: "mostCompact", label: "Most Compact" },
-  ];
 
   useEffect(() => {
     if (selectedCalendar !== undefined) {
@@ -566,49 +560,10 @@ const Calendar: React.FC<CalendarProps> = ({
     [currentCalendars.length, allCombinations]
   );
 
-  // Ranks combination numbers by a key built from each section's earliest
-  // start and latest end, without decoding the combinations themselves
-  const sortCombinations = (value: string) => {
-    const { lists, count } = allCombinations;
-    const stats = lists.map((list) =>
-      list.map((section) => {
-        let begin = Infinity;
-        let end = -Infinity;
-        for (const meetTime of section.meetTimes ?? []) {
-          begin = Math.min(begin, timeToMinutes(meetTime.meetTimeBegin));
-          end = Math.max(end, timeToMinutes(meetTime.meetTimeEnd));
-        }
-        return { begin, end };
-      })
-    );
-
-    const keys = new Float64Array(count);
-    for (let i = 0; i < count; i++) {
-      let n = i;
-      let begin = Infinity;
-      let end = -Infinity;
-      for (let k = lists.length - 1; k >= 0; k--) {
-        const length = lists[k].length;
-        const section = stats[k][n % length];
-        n = Math.floor(n / length);
-        begin = Math.min(begin, section.begin);
-        end = Math.max(end, section.end);
-      }
-      const key =
-        value === "mostCompact" ? end - begin
-        : value === "earliestStart" ? begin
-        : value === "latestStart" ? -begin
-        : value === "earliestEnd" ? end
-        : -end;
-      // Combinations with no meeting times go last
-      keys[i] = Number.isFinite(key) ? key : Infinity;
-    }
-
-    const order = new Uint32Array(count);
-    for (let i = 0; i < count; i++) order[i] = i;
-    order.sort((a, b) => keys[a] - keys[b] || a - b);
-    return { ...allCombinations, order };
-  };
+  const sortCombinations = (value: string) => ({
+    ...allCombinations,
+    order: rankCombinations(allCombinations.lists, allCombinations.count, value),
+  });
 
   const handleSortChange = (value: string) => {
     setSortValue(value);
@@ -775,7 +730,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 }
               >
                 <option value="">Default</option>
-                {sortOptions.map((option) => (
+                {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
