@@ -1300,3 +1300,164 @@
   font-size: 0.75rem;
   color: var(--csu-good);
 }
+
+/* desktop: share + friends on the left, comparison on the right */
+.friend-sheet.wide {
+  width: min(1180px, calc(100vw - 64px));
+  max-width: none;
+  max-height: 90vh;
+}
+
+.friend-split {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 0;
+  border-top: 1px solid var(--csu-line);
+}
+
+.friend-split aside {
+  border-right: 1px solid var(--csu-line);
+  padding-top: 16px;
+}
+
+.friend-main {
+  padding-top: 16px;
+  min-width: 0;
+}
+
+.friend-list li.active {
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--csu-blue-tint);
+}
+
+.friend-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 320px;
+  text-align: center;
+  color: var(--csu-muted);
+}
+
+.friend-placeholder strong {
+  color: var(--csu-ink);
+}
+
+.friend-main .friend-courses {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.friend-main .friend-courses li {
+  padding: 10px 12px;
+  border: 1px solid var(--csu-line);
+  border-radius: 10px;
+}
+
+.friend-week {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--csu-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.friend-week-head {
+  display: grid;
+  grid-template-columns: 48px repeat(5, 1fr);
+  border-bottom: 1px solid var(--csu-line);
+  background: var(--csu-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.friend-week-head span {
+  padding: 6px 0;
+}
+
+.friend-week-body {
+  display: grid;
+  grid-template-columns: 48px repeat(5, 1fr);
+}
+
+.friend-week-hours,
+.friend-week-day {
+  position: relative;
+}
+
+.friend-week-day {
+  border-left: 1px solid var(--csu-line);
+}
+
+.friend-week-hours span {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--csu-muted);
+}
+
+.friend-week-hours span:first-child {
+  transform: none;
+}
+
+.friend-week-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--csu-line);
+}
+
+.friend-week-free {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--csu-good-tint);
+}
+
+.friend-week-free span {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--csu-good);
+}
+
+.friend-week-class {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.friend-week-class.me {
+  left: 3px;
+  right: 50%;
+  margin-right: 1px;
+  background: var(--csu-blue);
+}
+
+.friend-week-class.them {
+  left: 50%;
+  right: 3px;
+  margin-left: 1px;
+  background: var(--csu-orange);
+}
+
+.friend-week-class span {
+  opacity: 0.85;
+}

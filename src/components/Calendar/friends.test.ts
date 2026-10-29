@@ -1,5 +1,6 @@
 import {
   busyByDay,
+  classBlocksByDay,
   decodeSchedule,
   encodeSchedule,
   formatBlock,
@@ -72,4 +73,16 @@ test("re-sharing replaces the friend's older schedule for that term", () => {
   const b = { ...a, classes: [cls("X", "1")] };
   const other = { ...a, term: "spring", year: "27" };
   expect(upsertFriend([a, other], b)).toEqual([b, other]);
+});
+
+test("class blocks keep labels and hide where personal events are", () => {
+  const blocks = classBlocksByDay([
+    { code: "COP3530", name: "", classNumber: "1", meets: [["TR", "13:55", "14:45", "CAR 0100"]] },
+    { code: "", name: "Busy", classNumber: "", meets: [["T", "16:05", "18:00", "Gym"]] },
+  ]);
+  expect(blocks[1]).toEqual([
+    { start: 835, end: 885, code: "COP3530", place: "CAR 0100" },
+    { start: 965, end: 1080, code: "Busy", place: "" },
+  ]);
+  expect(blocks[0]).toEqual([]);
 });

@@ -175,3 +175,20 @@ export const upsertFriend = (list: SharedSchedule[], friend: SharedSchedule) => 
     (f) => !(f.name === friend.name && f.term === friend.term && f.year === friend.year)
   ),
 ];
+
+export type ClassBlock = Block & { code: string; place: string };
+
+// Each class meeting per weekday, keeping its label for the week grid
+export const classBlocksByDay = (classes: SharedClass[]): ClassBlock[][] =>
+  DAYS.map((day) =>
+    classes.flatMap((c) =>
+      c.meets
+        .filter(([days]) => days.includes(day))
+        .map(([, start, end, place]) => ({
+          start: toMinutes(start),
+          end: toMinutes(end),
+          code: c.code || "Busy",
+          place: c.code ? place : "",
+        }))
+    )
+  );
