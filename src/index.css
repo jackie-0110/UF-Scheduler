@@ -34,6 +34,7 @@
   --bottom-bar-h: 0px;
   /* height available to the courses pane and the view pane */
   --pane-h: calc(100vh - var(--header-h));
+  --vh: 100vh;
   /* share of the width given to the courses pane on wide screens */
   --courses-w: 40%;
 }
@@ -41,7 +42,8 @@
 @media (max-width: 1000px) {
   :root {
     --header-h: 56px;
-    --header-stack-h: calc(var(--header-h) + 41px);
+    /* views move to the bottom bar */
+    --header-stack-h: var(--header-h);
     --pane-h: calc(100vh - var(--header-stack-h));
   }
 }

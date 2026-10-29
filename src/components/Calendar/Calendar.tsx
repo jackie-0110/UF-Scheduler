@@ -1,7 +1,7 @@
 import { Course, Section } from "../CourseUI/CourseTypes";
 import "./CalendarStyle.css";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { IoChevronBack, IoChevronForward, IoAlertCircleOutline, IoRefresh } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoAlertCircleOutline, IoRefresh, IoOptionsOutline } from "react-icons/io5";
 import { addDays, format, startOfWeek } from "date-fns";
 import IntervalTree, { Interval } from "@flatten-js/interval-tree";
 import CustomAppointmentForm from "./CustomAppointments/customAppointmentForm";
@@ -10,6 +10,8 @@ import NoMeetingStrip from "./NoMeetingStrip";
 import { findClashPairs } from "./calendarConflictUtils";
 import { rankCombinations, SORT_OPTIONS } from "./scheduleSort";
 import WalkCheck from "./WalkCheck";
+import DayList from "./DayList";
+import RegistrationCart from "./RegistrationCart";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -234,6 +236,12 @@ const Calendar: React.FC<CalendarProps> = ({
   const [sortValue, setSortValue] = useState("");
   const [isLoadingSort, setIsLoadingSort] = useState(false);
   const [filters, setFilters] = useState<ScheduleFilters>(NO_FILTERS);
+  // phones only: filters fold away and the week can show as a day list
+  const [showFilters, setShowFilters] = useState(false);
+  const [layout, setLayout] = useState<"week" | "day">(() =>
+    window.innerWidth <= 640 ? "day" : "week"
+  );
+  const [showCart, setShowCart] = useState(false);
   // Which schedule the pager is showing (index into `options` below)
   const [position, setPosition] = useState(0);
   const prevSelectedCoursesRef = useRef<Course[]>();
@@ -624,6 +632,13 @@ const Calendar: React.FC<CalendarProps> = ({
   return (
     <div className="calendar-container-2">
       {isLoadingSort && <div className="spinner"></div>}
+      {showCart && current && (
+        <RegistrationCart
+          combination={current.combination}
+          courses={selectedCourses}
+          onClose={() => setShowCart(false)}
+        />
+      )}
       <div className="calendar-display">
         {isAppointmentFormVisible && (
           <CustomAppointmentForm
@@ -646,77 +661,104 @@ const Calendar: React.FC<CalendarProps> = ({
           ></CustomAppointmentForm>
         )}
         <div className="schedule-toolbar">
-          <label className="schedule-filter">
-            Start after
-            <select
-              value={filters.startAfter ?? ""}
-              onChange={(e) =>
-                setFilters({ ...filters, startAfter: numberOrNull(e.target.value) })
-              }
-            >
-              <option value="">Any</option>
-              {hourOptions([8, 9, 10, 11, 12, 13])}
-            </select>
-          </label>
-          <label className="schedule-filter">
-            End by
-            <select
-              value={filters.endBy ?? ""}
-              onChange={(e) =>
-                setFilters({ ...filters, endBy: numberOrNull(e.target.value) })
-              }
-            >
-              <option value="">Any</option>
-              {hourOptions([13, 14, 15, 16, 17, 18])}
-            </select>
-          </label>
-          <label className="schedule-filter">
-            Max gap
-            <select
-              value={filters.maxGap ?? ""}
-              onChange={(e) =>
-                setFilters({ ...filters, maxGap: numberOrNull(e.target.value) })
-              }
-            >
-              <option value="">Any</option>
-              <option value={60}>1 hr</option>
-              <option value={120}>2 hr</option>
-              <option value={180}>3 hr</option>
-            </select>
-          </label>
-          <div className="schedule-filter" role="group" aria-label="Days off">
-            Days off
-            {DAY_CODES.map((day) => {
-              const isOff = filters.daysOff.includes(day);
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  className={`day-toggle${isOff ? " on" : ""}`}
-                  aria-pressed={isOff}
-                  onClick={() =>
-                    setFilters({
-                      ...filters,
-                      daysOff: isOff
-                        ? filters.daysOff.filter((d) => d !== day)
-                        : [...filters.daysOff, day],
-                    })
-                  }
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-          {filtersActive && (
+          <div className="schedule-mobile-row">
             <button
               type="button"
-              className="schedule-card-link"
-              onClick={() => setFilters(NO_FILTERS)}
+              className={`schedule-filters-toggle${filtersActive ? " active" : ""}`}
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters((open) => !open)}
             >
-              Clear filters
+              <IoOptionsOutline size={16} aria-hidden />
+              Filters
+              {filtersActive && <span className="filters-dot" aria-label="on" />}
             </button>
-          )}
+            <div className="layout-toggle" role="group" aria-label="Layout">
+              {(["day", "week"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={layout === value}
+                  className={layout === value ? "active" : ""}
+                  onClick={() => setLayout(value)}
+                >
+                  {value === "day" ? "Day" : "Week"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={`schedule-filters${showFilters ? " open" : ""}`}>
+            <label className="schedule-filter">
+              Start after
+              <select
+                value={filters.startAfter ?? ""}
+                onChange={(e) =>
+                  setFilters({ ...filters, startAfter: numberOrNull(e.target.value) })
+                }
+              >
+                <option value="">Any</option>
+                {hourOptions([8, 9, 10, 11, 12, 13])}
+              </select>
+            </label>
+            <label className="schedule-filter">
+              End by
+              <select
+                value={filters.endBy ?? ""}
+                onChange={(e) =>
+                  setFilters({ ...filters, endBy: numberOrNull(e.target.value) })
+                }
+              >
+                <option value="">Any</option>
+                {hourOptions([13, 14, 15, 16, 17, 18])}
+              </select>
+            </label>
+            <label className="schedule-filter">
+              Max gap
+              <select
+                value={filters.maxGap ?? ""}
+                onChange={(e) =>
+                  setFilters({ ...filters, maxGap: numberOrNull(e.target.value) })
+                }
+              >
+                <option value="">Any</option>
+                <option value={60}>1 hr</option>
+                <option value={120}>2 hr</option>
+                <option value={180}>3 hr</option>
+              </select>
+            </label>
+            <div className="schedule-filter" role="group" aria-label="Days off">
+              Days off
+              {DAY_CODES.map((day) => {
+                const isOff = filters.daysOff.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    className={`day-toggle${isOff ? " on" : ""}`}
+                    aria-pressed={isOff}
+                    onClick={() =>
+                      setFilters({
+                        ...filters,
+                        daysOff: isOff
+                          ? filters.daysOff.filter((d) => d !== day)
+                          : [...filters.daysOff, day],
+                      })
+                    }
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+            {filtersActive && (
+              <button
+                type="button"
+                className="schedule-card-link"
+                onClick={() => setFilters(NO_FILTERS)}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
           <div className="schedule-toolbar-end">
             <label className="schedule-filter">
               Sort
@@ -786,11 +828,16 @@ const Calendar: React.FC<CalendarProps> = ({
             {current && current.appointments.length > 0 && (
               <div className="schedule-card-actions">
                 <button
-                  className="schedule-card-link"
+                  className="schedule-card-link ics-link"
                   onClick={() => downloadICS(current.appointments)}
                 >
                   Download ICS
                 </button>
+                {current.combination.some((section) => section.courseCode) && (
+                  <button className="schedule-card-link" onClick={() => setShowCart(true)}>
+                    Register
+                  </button>
+                )}
                 <button
                   className={`schedule-card-select${
                     current.pinned ? " selected" : ""
@@ -892,7 +939,11 @@ const Calendar: React.FC<CalendarProps> = ({
           ) : (
             <>
               <NoMeetingStrip sections={noMeetingSections} />
-              <WeekGrid appointments={current ? current.appointments : []} />
+              {layout === "day" ? (
+                <DayList appointments={current ? current.appointments : []} />
+              ) : (
+                <WeekGrid appointments={current ? current.appointments : []} />
+              )}
               {current && <WalkCheck combination={current.combination} />}
             </>
           )}

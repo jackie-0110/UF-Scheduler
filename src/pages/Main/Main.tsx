@@ -5,8 +5,9 @@ import "./MainStyles.css";
 import { Course } from "../../components/CourseUI/CourseTypes";
 import Calendar from "../../components/Calendar/Calendar";
 import Header from "../../components/Header/Header";
-import { AiOutlineMessage, AiOutlineCalendar } from "react-icons/ai";
-import { IoClose, IoSearch } from "react-icons/io5";
+import { AiOutlineMessage, AiOutlineCalendar, AiOutlineSchedule } from "react-icons/ai";
+import { PiGraphFill } from "react-icons/pi";
+import { IoClose, IoGridOutline, IoSearch } from "react-icons/io5";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import Footer from "../../components/Footer/Footer";
 import Chat from "../../components/Chat/LiveChat";
@@ -19,6 +20,13 @@ import { ChangeEvent } from "react";
 import { useAIActionStore } from "../../store/aiActionStore";
 import { API_URLS, BACKEND_URLS } from "../../config/api";
 import { DEFAULT_TERM, isKnownTerm } from "../../config/terms";
+
+const MOBILE_VIEWS = [
+  { view: "calendar", label: "Schedule", icon: <AiOutlineCalendar size={20} /> },
+  { view: "planner", label: "Planner", icon: <IoGridOutline size={20} /> },
+  { view: "graph", label: "Prereqs", icon: <PiGraphFill size={20} /> },
+  { view: "plan", label: "Plans", icon: <AiOutlineSchedule size={20} /> },
+] as const;
 
 const Main = () => {
   useEffect(() => {
@@ -280,14 +288,6 @@ const Main = () => {
 
   };
 
-  const viewLabels = {
-    calendar: "Schedule",
-    graph: "Prerequisites",
-    plan: "Model Plans",
-    planner: "Planner",
-    map: "Map",
-    "": "Schedule",
-  };
 
   return (
     <div
@@ -405,24 +405,29 @@ const Main = () => {
           </div>
         </div>
       </div>
-      <nav className="bottom-bar" aria-label="Panes">
+      <nav className="bottom-bar" aria-label="Views">
         <button
           className={mobilePane === "courses" ? "active" : ""}
           onClick={() => setMobilePane("courses")}
         >
-          <IoSearch size={20} />
+          <span className="bottom-bar-icon">
+            <IoSearch size={20} />
+            {selectedCourses.length > 0 && (
+              <span className="bottom-bar-count">{selectedCourses.length}</span>
+            )}
+          </span>
           Courses
-          {selectedCourses.length > 0 && (
-            <span className="bottom-bar-count">{selectedCourses.length}</span>
-          )}
         </button>
-        <button
-          className={mobilePane === "view" ? "active" : ""}
-          onClick={() => setMobilePane("view")}
-        >
-          <AiOutlineCalendar size={20} />
-          {viewLabels[currentView]}
-        </button>
+        {MOBILE_VIEWS.map(({ view, label, icon }) => (
+          <button
+            key={view}
+            className={mobilePane === "view" && currentView === view ? "active" : ""}
+            onClick={() => showView(view)}
+          >
+            <span className="bottom-bar-icon">{icon}</span>
+            {label}
+          </button>
+        ))}
       </nav>
       <Footer />
       <div className="floating-text">

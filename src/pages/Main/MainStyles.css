@@ -77,8 +77,20 @@
 @media (max-width: 1000px) {
   .scheduler-app {
     --bottom-bar-h: 56px;
-    --pane-h: calc(100vh - var(--header-stack-h) - var(--bottom-bar-h));
+    --pane-h: calc(100vh - var(--header-stack-h) - var(--bottom-bar-h) - env(safe-area-inset-bottom));
   }
+
+  /* 100vh includes the browser bars on phones; dvh doesn't */
+  @supports (height: 100dvh) {
+    .scheduler-app {
+      --pane-h: calc(100dvh - var(--header-stack-h) - var(--bottom-bar-h) - env(safe-area-inset-bottom));
+    }
+  }
+
+  .scheduler-app .site-footer {
+    display: none;
+  }
+
 
   .courses-pane,
   .view-pane {
@@ -99,6 +111,8 @@
     z-index: 1000;
     display: flex;
     height: var(--bottom-bar-h);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: content-box;
     background-color: var(--csu-surface);
     border-top: 1px solid var(--csu-line);
   }
@@ -106,24 +120,38 @@
   .bottom-bar button {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    font-size: 0.875rem;
-    font-weight: 300;
-    color: var(--csu-ink);
+    gap: 2px;
+    min-width: 0;
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: var(--csu-muted);
     border-top: 2px solid transparent;
   }
 
   .bottom-bar button.active {
     color: var(--csu-blue);
-    font-weight: 500;
+    font-weight: 600;
     border-top-color: var(--csu-blue);
   }
 
+  .bottom-bar-icon {
+    position: relative;
+    display: flex;
+  }
+
+  .bottom-bar-icon .bottom-bar-count {
+    position: absolute;
+    top: -6px;
+    left: 14px;
+  }
+
   .bottom-bar-count {
-    min-width: 20px;
-    padding: 1px 6px;
+    min-width: 16px;
+    box-sizing: border-box;
+    padding: 1px 5px;
     border-radius: 9999px;
     background-color: var(--csu-blue);
     color: #ffffff;
@@ -299,4 +327,14 @@
 
 .planner-active .view-pane {
   border-left: none;
+}
+
+@media (max-width: 1000px) {
+  .chat-toggle-button {
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+    right: 12px;
+    bottom: calc(12px + var(--bottom-bar-h) + env(safe-area-inset-bottom));
+  }
 }

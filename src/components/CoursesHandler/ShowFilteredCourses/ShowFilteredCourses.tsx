@@ -505,6 +505,9 @@ const ShowFilteredCourses: React.FC<ShowFilteredCoursesProps> = ({
               <>
                 <strong>Find your courses</strong>
                 <span>Search by course code (COP 3502), title (calculus), or instructor.</span>
+                <span className="empty-links">
+                  <a href="/about">About</a> · <a href="/privacy">Privacy</a>
+                </span>
               </>
             ) : null}
           </div>

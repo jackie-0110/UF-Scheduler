@@ -236,3 +236,22 @@ button.prereq-code:hover {
   color: var(--csu-blue);
 }
 
+
+.search-status .empty-links {
+  display: none;
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: var(--csu-muted);
+}
+
+.search-status .empty-links a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* the floating footer is hidden on phones, so its links live here */
+@media (max-width: 1000px) {
+  .search-status .empty-links {
+    display: block;
+  }
+}
