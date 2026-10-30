@@ -831,10 +831,6 @@
     order: 2;
     padding: 6px 12px;
   }
-  /* ICS is a desktop thing; Register matters more here */
-  .ics-link {
-    display: none;
-  }
 }
 
 @media (min-width: 641px) {
@@ -1669,4 +1665,124 @@
   border-color: var(--csu-bad);
   background: rgba(185, 28, 28, 0.12);
   color: var(--csu-bad);
+}
+
+/* ── Calendar feed ── */
+
+.feed-sheet {
+  width: 480px;
+}
+
+.feed-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 20px 16px;
+  font-size: 0.85rem;
+}
+
+.feed-signin p {
+  margin: 0;
+}
+
+.feed-status {
+  margin: 4px 20px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--csu-blue-tint);
+  font-size: 0.8rem;
+}
+
+.feed-status.synced {
+  background: var(--csu-good-tint);
+  color: var(--csu-good);
+}
+
+.feed-status.error {
+  background: var(--csu-bad-tint);
+  color: var(--csu-bad);
+}
+
+.feed-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 14px 20px 4px;
+}
+
+.feed-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1px solid var(--csu-line);
+  border-radius: 10px;
+  color: var(--csu-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.feed-option:hover {
+  border-color: var(--csu-blue);
+  color: var(--csu-blue);
+}
+
+.feed-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 20px 0;
+}
+
+.feed-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.feed-link-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--csu-line);
+  border-radius: 8px;
+  background: var(--csu-surface);
+  color: var(--csu-muted);
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.feed-note {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--csu-muted);
+}
+
+.feed-foot {
+  margin-top: 14px;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--csu-line);
+  font-size: 0.78rem;
+}
+
+.feed-foot .schedule-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .feed-options {
+    grid-template-columns: 1fr;
+  }
+
+  .feed-option {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
 }

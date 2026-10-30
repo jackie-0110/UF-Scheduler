@@ -16,6 +16,10 @@ import FriendsSheet from "./FriendsSheet";
 import { fetchFriendCourses } from "./copyFriend";
 import { ghostBlocks, usePreviewSection } from "./previewStore";
 import { decodeSchedule, loadFriends, saveFriends, SharedSchedule, upsertFriend } from "./friends";
+import CalendarSheet, { FeedStatus } from "./CalendarSheet";
+import { syncFeed } from "./calendarFeed";
+import { useAccount } from "../../account/account";
+import { useWide } from "./useWide";
 
 const today = new Date();
 const isWeekend = today.getDay() === 6; // 6 is Saturday, 0 is Sunday
@@ -247,6 +251,10 @@ const Calendar: React.FC<CalendarProps> = ({
   );
   const [showCart, setShowCart] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [showFeed, setShowFeed] = useState(false);
+  const { session, setFeed } = useAccount();
+  const wideLabels = useWide();
+  const [feedStatus, setFeedStatus] = useState<FeedStatus>("idle");
   const previewSection = usePreviewSection();
   const [friends, setFriends] = useState<SharedSchedule[]>(loadFriends);
   const [comparing, setComparing] = useState<SharedSchedule | null>(null);
@@ -336,6 +344,37 @@ const Calendar: React.FC<CalendarProps> = ({
       );
     }
   }, [selectedCalendar, term, year]);
+
+  // The calendar feed follows the pinned schedule
+  const pushFeed = async (appointments: any[]) => {
+    if (!session) return;
+    setFeedStatus("syncing");
+    try {
+      setFeed(await syncFeed(session, year, term, appointments));
+      setFeedStatus("synced");
+    } catch {
+      setFeedStatus("error");
+    }
+  };
+
+  // opening the sheet, or signing in from it
+  useEffect(() => {
+    if (showFeed && session && selectedCalendar) pushFeed(selectedCalendar.appointments);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFeed, session]);
+
+  // after that, picking a different schedule updates the feed on its own
+  const firstPin = useRef(true);
+  useEffect(() => {
+    if (firstPin.current) {
+      firstPin.current = false;
+      return;
+    }
+    if (!session || !selectedCalendar || showFeed) return;
+    const timer = setTimeout(() => pushFeed(selectedCalendar.appointments), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCalendar]);
 
   // Reset calendar when term changes
   useEffect(() => {
@@ -692,6 +731,16 @@ const Calendar: React.FC<CalendarProps> = ({
           onClose={() => setShowCart(false)}
         />
       )}
+      {showFeed && (
+        <CalendarSheet
+          status={feedStatus}
+          classCount={selectedCalendar ? new Set(selectedCalendar.combination.map((s) => s.courseCode || s.courseName)).size : 0}
+          termName={`${term.charAt(0).toUpperCase()}${term.slice(1)} 20${year}`}
+          onRetry={() => selectedCalendar && pushFeed(selectedCalendar.appointments)}
+          onDownload={() => selectedCalendar && downloadICS(selectedCalendar.appointments)}
+          onClose={() => setShowFeed(false)}
+        />
+      )}
       {showFriends && (
         <FriendsSheet
           combination={current ? current.combination : null}
@@ -901,9 +950,18 @@ const Calendar: React.FC<CalendarProps> = ({
               <div className="schedule-card-actions">
                 <button
                   className="schedule-card-link ics-link"
-                  onClick={() => downloadICS(current.appointments)}
+                  onClick={() => {
+                    // the feed shows the pinned schedule, so adding one pins it
+                    if (!current.pinned) {
+                      setSelectedCalendar({
+                        appointments: current.appointments,
+                        combination: current.combination,
+                      });
+                    }
+                    setShowFeed(true);
+                  }}
                 >
-                  Download ICS
+                  {wideLabels ? "Add to calendar" : "Calendar"}
                 </button>
                 {current.combination.some((section) => section.courseCode) && (
                   <button className="schedule-card-link" onClick={() => setShowCart(true)}>

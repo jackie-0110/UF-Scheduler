@@ -8,6 +8,7 @@ import ReactGA from 'react-ga4';
 import 'react-tooltip/dist/react-tooltip.css'
 import { AuthProvider } from 'react-oidc-context';
 import { cognitoConfig } from './config/api';
+import { AccountProvider } from './account/account';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 // react-ga4 throws on an empty measurement ID, which would blank the whole app
@@ -17,9 +18,11 @@ if (process.env.REACT_APP_GA_TOKEN) {
 root.render(
   <React.StrictMode>
     <AuthProvider {...cognitoConfig}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AccountProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AccountProvider>
     </AuthProvider>
   </React.StrictMode>
 );

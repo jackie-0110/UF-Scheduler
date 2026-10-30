@@ -3,10 +3,9 @@ import { useEffect, useState } from "react";
 import { AiOutlineCalendar, AiOutlineSchedule } from "react-icons/ai";
 import { IoGridOutline } from "react-icons/io5";
 import { PiGraphFill } from "react-icons/pi";
-import { BiLogOut, BiLogIn } from "react-icons/bi";
+import { BiLogOut } from "react-icons/bi";
 import { Course } from "../CourseUI/CourseTypes";
-import { useAuth } from "react-oidc-context";
-import { signOutRedirect } from "../../config/api";
+import { GoogleButton, useAccount } from "../../account/account";
 import { TERMS } from "../../config/terms";
 
 type View = "calendar" | "graph" | "map" | "plan" | "planner";
@@ -28,12 +27,12 @@ const Header: React.FC<HeaderProps> = ({
   selectedValue,
   handleTermChange,
 }) => {
-  const auth = useAuth();
+  const { user, checking, signOut } = useAccount();
   const [totalCredits, setTotalCredits] = useState(0);
 
-  const userEmail = auth.user?.profile?.email ?? "";
+  const userEmail = user?.email ?? "";
   const userInitial = userEmail ? userEmail[0].toUpperCase() : "?";
-  const userPicture = auth.user?.profile?.picture as string | undefined;
+  const userPicture = user?.picture || undefined;
 
   useEffect(() => {
     const sumCredits = selectedCourses.reduce((totalCredits, course) => {
@@ -101,7 +100,7 @@ const Header: React.FC<HeaderProps> = ({
             <span className="credits-value">{totalCredits}</span>
           </div>
           <div className="auth-section">
-            {auth.isAuthenticated ? (
+            {user ? (
               <>
                 <div className="auth-avatar" title={userEmail}>
                   {userPicture ? (
@@ -118,19 +117,14 @@ const Header: React.FC<HeaderProps> = ({
                 {isDesktop && <span className="auth-email">{userEmail}</span>}
                 <button
                   className="auth-signout-btn"
-                  onClick={signOutRedirect}
+                  onClick={signOut}
                   title="Sign out"
                 >
                   {isDesktop ? "Sign Out" : <BiLogOut size={18} />}
                 </button>
               </>
             ) : (
-              <button
-                className="auth-signin-btn"
-                onClick={() => auth.signinRedirect()}
-              >
-                {windowWidth > 500 ? "Sign In" : <BiLogIn size={18} />}
-              </button>
+              !checking && <GoogleButton compact={windowWidth <= 500} />
             )}
           </div>
         </div>

@@ -269,3 +269,14 @@
     display: none;
   }
 }
+
+.google-button {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.auth-failed {
+  font-size: 0.72rem;
+  color: var(--csu-muted);
+}
