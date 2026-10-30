@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../config/api";
+import { clearSynced, pull, push, setSyncSession } from "./sync";
 
 // Sign in with Google. Google's button gives us an ID token, the API checks it
 // and returns its own long-lived session, which is all we keep.
@@ -13,7 +14,7 @@ type AccountState = {
   user: Account | null;
   session: string | null;
   checking: boolean;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   setFeed: (feed: string) => void;
 };
 
@@ -21,7 +22,7 @@ const AccountContext = createContext<AccountState>({
   user: null,
   session: null,
   checking: false,
-  signOut: () => {},
+  signOut: async () => {},
   setFeed: () => {},
 });
 
@@ -60,7 +61,7 @@ const initGoogle = async () => {
   return window.google.accounts.id;
 };
 
-const readSession = () => {
+export const readSession = () => {
   try {
     return localStorage.getItem(SESSION_KEY);
   } catch {
@@ -78,6 +79,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const forget = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
+    setSyncSession(null);
     setSession(null);
     setUser(null);
   }, []);
@@ -106,18 +108,42 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!r.ok) return;
       const data = await r.json();
       localStorage.setItem(SESSION_KEY, data.session);
+      setSyncSession(data.session);
       setSession(data.session);
       setUser(data.user);
+      // bring in what's saved in the account; reload so every screen picks it up
+      if (await pull().catch(() => false)) window.location.reload();
     };
   }, []);
 
-  const signOut = useCallback(() => {
+  // coming back to the tab: grab anything saved from another device
+  useEffect(() => {
+    if (!session) return;
+    let last = Date.now();
+    const onVisible = async () => {
+      if (document.visibilityState === "hidden") {
+        push();
+        return;
+      }
+      if (Date.now() - last < 30_000) return;
+      last = Date.now();
+      if (await pull().catch(() => false)) window.location.reload();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [session]);
+
+  const signOut = useCallback(async () => {
     const current = readSession();
+    // send unsaved edits first; the account's data then leaves this device and comes back on sign-in
+    await push();
     if (current) {
-      fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST", headers: authHeaders(current) }).catch(() => {});
+      await fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST", headers: authHeaders(current) }).catch(() => {});
     }
     window.google?.accounts?.id?.disableAutoSelect();
     forget();
+    clearSynced();
+    window.location.reload();
   }, [forget]);
 
   const setFeed = useCallback((feed: string) => setUser((u) => (u ? { ...u, feed } : u)), []);
