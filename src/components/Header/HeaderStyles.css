@@ -280,3 +280,20 @@
   font-size: 0.72rem;
   color: var(--csu-muted);
 }
+
+.auth-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--csu-bad-tint);
+  color: var(--csu-bad);
+  border: 1px solid var(--csu-bad);
+  font-size: 0.85rem;
+  box-shadow: var(--csu-shadow);
+  cursor: pointer;
+}

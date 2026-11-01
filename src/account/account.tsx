@@ -76,6 +76,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [session, setSession] = useState<string | null>(readSession);
   const [user, setUser] = useState<Account | null>(null);
   const [checking, setChecking] = useState(() => readSession() !== null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const forget = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
@@ -100,12 +101,13 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     onCredential = async (credential) => {
+      const failed = () => setNotice("Couldn't sign you in. Please try again in a moment.");
       const r = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential }),
-      });
-      if (!r.ok) return;
+      }).catch(() => null);
+      if (!r?.ok) return failed();
       const data = await r.json();
       localStorage.setItem(SESSION_KEY, data.session);
       setSyncSession(data.session);
@@ -146,10 +148,23 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     window.location.reload();
   }, [forget]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const setFeed = useCallback((feed: string) => setUser((u) => (u ? { ...u, feed } : u)), []);
 
   return (
-    <AccountContext.Provider value={{ user, session, checking, signOut, setFeed }}>{children}</AccountContext.Provider>
+    <AccountContext.Provider value={{ user, session, checking, signOut, setFeed }}>
+      {children}
+      {notice && (
+        <div className="auth-toast" role="alert" onClick={() => setNotice(null)}>
+          {notice}
+        </div>
+      )}
+    </AccountContext.Provider>
   );
 };
 
